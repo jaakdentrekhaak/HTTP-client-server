@@ -7,7 +7,7 @@ ADDR = (SERVER, PORT)
 HEADER = 64 # TODO: figure out what is the right size (bytes) for the received message
 FORMAT = 'utf-8' # Find different format when it comes to images
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Create TCP socket
 client.connect(ADDR)
 
 def send(msg):

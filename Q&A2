@@ -1,0 +1,45 @@
+Related to the assignment: When I read a png with “open(fileLocation, “rb”)”, and later try to send this png using “decode(‘utf-8’)”, I get an error “'utf-8' codec can't decode byte 0x89” (with 0x89 being the first byte of any png). What encoding can I use to avoid such errors ?
+
+> utf-8 can't be used for images -> use base-64 for example
+
+How do we determine how large the buffer size should be when receiving messages? If this number is too small, responses are truncated. For example in client.recv(BUFFER_SIZE).decode(FORMAT).rstrip()
+
+> server sends content-length
+
+What is the estimated time to make the first assignment?
+
+> 15 hours, but depends on skill
+
+Does the HTTP client program need to run once with command line arguments,
+and once it has run its HTTP command, the program terminates?
+Or do we need to run the program interactively.
+
+> run once
+
+When we have determined the content length from the header, can we get all of the body at once using recv(length), or do we have to check for null bytes in the response?
+
+> good practice to check for end-characters, but length should be enough
+
+You said we had to determine the buffer size through a response header. Does this mean that we have to send a HEAD request before sending a GET request?
+
+> you can do this
+
+You say its +- some bytes, so when the header in my GET request states it uses chunked transfer, could it be the chunk size isn't exactly the chunk size I receive? 
+
+> chunk size is exactly right, so if it says 5 bytes, it will be 5 bytes
+
+When Transfer chunks, sometimes the CRFL is put 2 times after each other and sometimes 1. Should we handle the weird case of two CRFL ("\r\n\r\n")?
+
+> make sure our program works with the example websites in the example (their will be a few weird cases)
+
+I noticed the header from HEAD request and the header from GET request aren't always 100% the same btw
+
+> possible, take this into account
+
+For a GET request, can we assume that we will exclusively receive HTML responses in the body or should we also be able to save any other formats (eg. JSON)?
+
+> assume HTML (for extra points, you can include JSON, but not important)
+
+NOTE: If you make all basic questions perfectly, you can get max, but if you have a few mistakes in the basic questions, this can be countered by extra implementation.
+
+
