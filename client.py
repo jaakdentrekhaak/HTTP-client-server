@@ -55,6 +55,7 @@ def do_command(cmd):
         msg += 'Host:%s\r\n' % (uri)
         msg += 'Content-Type: text/html\r\n'
         msg += 'Content-Length: %s' % (len(put_text)) + '\r\n'
+        msg += '\r\n'
         msg += put_text + '\r\n'
         msg += '\r\n'
     elif cmd == 'POST':
@@ -63,6 +64,7 @@ def do_command(cmd):
         msg += 'Host:%s\r\n' % (uri)
         msg += 'Content-Type: text/html\r\n'
         msg += 'Content-Length: %s' % (len(post_text)) + '\r\n'
+        msg += '\r\n'
         msg += post_text + '\r\n'
         msg += '\r\n'
 
