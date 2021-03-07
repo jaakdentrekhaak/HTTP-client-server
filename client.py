@@ -1,5 +1,5 @@
 import socket
-
+import re
 
 HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this implementation
 
@@ -37,6 +37,11 @@ client.connect((server, port))
 
 
 def do_command(cmd):
+    """Send HTTP request to the server depending on the type of command
+
+    Args:
+        cmd (string): One of the possible HTTP commands
+    """
     if cmd not in HTTP_COMMANDS:
         print('[INVALID COMMAND] Command not recognized')
         exit()
@@ -70,6 +75,35 @@ def do_command(cmd):
 
     client.send(msg.encode())
 
+def store_html(resp):
+    """Search HTML body in the given response and store into HTML file
+
+    Args:
+        resp (bytes): HTTP server response
+    """
+    # Get HTML body
+    # TODO: maybe use content-length and transfer-encoding?
+    start = resp.index('<!doctype html>')
+    end = resp.index('</html>') + len('</html>')
+    body = resp[start:end]
+    
+    # Store HTML body
+    open('received.html', 'w').close() # Remove contents of html file
+    file = open('received.html', 'w')
+    file.write(body)
+    file.close()
+
+def get_encoding(resp):
+    """Get encoding type of HTTP response
+
+    Args:
+        resp (bytes): HTTP server response
+
+    Returns:
+        string: encoding type of given response
+    """
+    # Using regex to search word following the given keyword
+    return re.search(b'charset=(\S+)', resp).group(1).decode('utf-8')
 
 while True:
     # Get HTTP command
@@ -85,19 +119,12 @@ while True:
         if received.endswith('\r\n\r\n'.encode('utf-8')):
             break
     
-    response = response.decode('ISO-8859-1') # TODO: get encoding with 'charset' in content-length header
+    # Decode message
+    response = response.decode(get_encoding(response)) # E.g. 'ISO-8859-1' # TODO: get encoding with 'charset' in content-length header
 
     # Store HTML body in file
     # TODO: download images in html file
     if command == 'GET':
-        # Get HTML body
-        start = response.index('<!doctype html>')
-        end = response.index('</html>') + len('</html>')
-        body = response[start:end]
-        
-        # Store HTML body
-        file = open('received.html', 'w').close() # Remove contents of html file
-        file = open('received.html', 'w')
-        file.write(body)
-        file.close()
+        store_html(response)
 
+    print(response)
