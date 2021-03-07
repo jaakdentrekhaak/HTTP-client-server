@@ -43,27 +43,27 @@ def do_command(cmd):
 
     if cmd == 'HEAD':
         msg = 'HEAD / HTTP/1.1\r\n'
-        msg += 'Host:%s\r\n' % (uri)
+        msg += f'Host:{uri}\r\n'
         msg += '\r\n'
     elif cmd == 'GET':
         msg = 'GET / HTTP/1.1\r\n'
-        msg += 'Host:%s\r\n' % (uri)
+        msg += f'Host:{uri}\r\n'
         msg += '\r\n'
     elif cmd == 'PUT':
         put_text = input('PUT text: ')
         msg = 'PUT / HTTP/1.1\r\n'
-        msg += 'Host:%s\r\n' % (uri)
+        msg += f'Host:{uri}\r\n'
         msg += 'Content-Type: text/html\r\n'
-        msg += 'Content-Length: %s' % (len(put_text)) + '\r\n'
+        msg += f'Content-Length: {len(put_text)}\r\n'
         msg += '\r\n'
         msg += put_text + '\r\n'
         msg += '\r\n'
     elif cmd == 'POST':
         post_text = input('POST text: ')
         msg = 'POST / HTTP/1.1\r\n'
-        msg += 'Host:%s\r\n' % (uri)
+        msg += f'Host:{uri}\r\n'
         msg += 'Content-Type: text/html\r\n'
-        msg += 'Content-Length: %s' % (len(post_text)) + '\r\n'
+        msg += f'Content-Length: {len(post_text)}\r\n'
         msg += '\r\n'
         msg += post_text + '\r\n'
         msg += '\r\n'
@@ -77,5 +77,27 @@ while True:
     
     do_command(command)
 
-    response = client.recv(100) # TODO: dynamic receive bytes
-    print(response)
+    # Get response from server
+    response = b''
+    while True:
+        received = client.recv(1024)
+        response += received
+        if received.endswith('\r\n\r\n'.encode('utf-8')):
+            break
+    
+    response = response.decode('ISO-8859-1') # TODO: get encoding with 'charset' in content-length header
+
+    # Store HTML body in file
+    # TODO: download images in html file
+    if command == 'GET':
+        # Get HTML body
+        start = response.index('<!doctype html>')
+        end = response.index('</html>') + len('</html>')
+        body = response[start:end]
+        
+        # Store HTML body
+        file = open('received.html', 'w').close() # Remove contents of html file
+        file = open('received.html', 'w')
+        file.write(body)
+        file.close()
+
