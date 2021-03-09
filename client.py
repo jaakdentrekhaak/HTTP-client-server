@@ -1,5 +1,8 @@
 import socket
 from bs4 import BeautifulSoup
+import os
+from pathlib import Path
+
 
 HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this implementation
 
@@ -122,6 +125,7 @@ def store_html(html):
     file.write(html.prettify())
     file.close()
 
+
 def store_img(img, path):
     """Store image response from server in local directory
 
@@ -129,7 +133,15 @@ def store_img(img, path):
         img (bytes): image response from server
         path (string): path where image needs to be stored
     """
-    file = open(path, 'w')
+    # path = /blabla/blabla/blabla.png
+    dirs = path.split('/') # Result: ['', 'blabla', 'blabla', 'blabla.png']
+    dirs = dirs[:-1] # Result: ['', 'blabla', 'blabla']
+    dirs = '.' + '/'.join(dirs) # Result: './blabla/blabla'
+
+    # Create directory if it doesn't exist
+    Path(dirs).mkdir(parents=True, exist_ok=True)
+
+    file = open('.' + path, 'wb')
     file.write(img)
     file.close()
 
@@ -145,11 +157,12 @@ def request_img(url):
     if url.startswith('/'):
         msg = make_GET(url)
         client.send(msg.encode())
-        resp = receive_response()
+        resp = handle_get_response()
         store_img(resp, url)
 
 
     ## External images (open other socket to external server)
+    # TODO
 
 
 def fix_html(html):
@@ -205,10 +218,10 @@ def get_content_length(head):
 
 
 def handle_get_response():
-    """Receive HTTP response from server and return HTML body
+    """Receive HTTP response from server and return response body
 
     Returns:
-        bytes: HTML body
+        bytes: HTTP response body
     """
     header = b''
     
@@ -240,31 +253,30 @@ def main():
 
     do_command(command)
 
-    # # Get response from server
-    # response = receive_response()
 
+    # Store HTML body in file
     if command == 'GET':
+        # Get HTML body
         body = handle_get_response()
 
-    # # Store HTML body in file
-    # if command == 'GET':
-    #     # Get HTML body
-    #     body = get_html_body(response)
+        # Prettify body
+        soup = BeautifulSoup(body, 'html.parser')
 
-    #     # Prettify body
-    #     soup = BeautifulSoup(body, 'html.parser')
+        # Store body
+        store_html(soup)
 
-    #     # Store body
-    #     store_html(soup)
-
-    #     # Fix html with images
-    #     fix_html(soup)
+        # Fix html with images
+        fix_html(soup)
     
-    # elif command == 'HEAD':
-    #     print(response.decode('utf-8'))
+    # Print headers
+    elif command == 'HEAD':
+        # Get response from server
+        response = receive_response()
 
-    # # Close connection
-    # # TODO: send 'Connection: close' header to server
-    # client.close()
+        print(response.decode('utf-8'))
+
+    # Close connection
+    # TODO: send 'Connection: close' header to server
+    client.close()
 
 main()
