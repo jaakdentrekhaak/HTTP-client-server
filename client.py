@@ -5,25 +5,32 @@ HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this
 
 
 # Get URI (e.g. http://www.google.com)
-uri = input('URI (press enter for www.google.com): ')
+uri = input('URI: 1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip: ') or 'www.example.com'
+
+if uri == '1':
+    uri = 'www.example.com'
+elif uri == '2':
+    uri = 'www.google.com'
+elif uri == '3':
+    uri = 'www.tcpipguide.com'
+elif uri == '4':
+    uri = 'www.jmarshall.com'
+elif uri == '5':
+    uri = 'www.tldp.org'
+elif uri == '6':
+    uri = 'www.tinyos.net'
+elif uri == '7':
+    uri = 'www.linux-ip.net'
 
 # Parse URI (e.g. www.google.com)
 if uri.startswith('http://'):
     uri = uri[len('http://'):]
 
-# Use www.google.com as default URI
-if not uri:
-    uri = 'www.google.com'
-
-
 # Get port
-port = input('Port (press enter to use default): ')
+port = input('Port (press enter to use default): ') or 80
 
-# Use default port if no port specified
-if not port:
-    port = 80
-
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # Create TCP socket with ipv4
+# Create TCP socket with ipv4
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Connect to server
 try:  
@@ -32,8 +39,8 @@ except socket.gaierror:
     # this means could not resolve the host  
     print ('There was an error resolving the host') 
     exit()
-
 client.connect((server, port))
+
 
 def make_GET(path):
     """Generate GET message with given path
@@ -198,6 +205,11 @@ def get_content_length(head):
 
 
 def handle_get_response():
+    """Receive HTTP response from server and return HTML body
+
+    Returns:
+        bytes: HTML body
+    """
     header = b''
     
     # First get headers: read byte per byte until we have the headers
@@ -231,7 +243,8 @@ def main():
     # # Get response from server
     # response = receive_response()
 
-    print(handle_get_response())
+    if command == 'GET':
+        body = handle_get_response()
 
     # # Store HTML body in file
     # if command == 'GET':
