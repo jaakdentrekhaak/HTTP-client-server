@@ -1,0 +1,117 @@
+I’m having trouble transporting images over the socket. Currently, the servers encoding/decoding workflow for images is as follows:
+
+A png is requested à read png [png = open(requestedPng, “rb”)] à encode png using base64 [pngBase64 = base64.base64encode(png)] à 
+remove the utf-8 encoding [pngBase64Pure = pngBase64.decode(‘utf-8’)] à add this pure base64 string to the response body as below à 
+encode the response body in UTF-8 and send it through the socket
+
+An example of a full HTTP response for an image is:
+
+HTTP/1.1 200 OK
+Date: Mon, 08 Mar 2021 17:59:20
+Content-Length: 42816
+Content-Type: image/png
+iVBORw0K… (this being a base64 string)
+
+
+The base64 string that the server returns is valid, because when I try to view it in Chrome using “data:image/x-icon;base64,iVBORw0K…” 
+the webbrowser succesfully shows the png. When receiving this server reply however, Chrome shows a corrupted png file with it’s 
+contents being “aVZCT1J3ME…”. When I use an online base64 decoder and decode this “aVZCT1J3ME…” string however, the valid “iVBORw0K….”
+string is returned, so the problem is supposedly a missing base64 decoding. What can I change about the current workflow so the server 
+succesfully displays images ?
+
+
+Is it obligatory to use Content-Length and Transfer-Encoding: chunked? Is it sufficient to loop until you find the double line ending \r\n\r\n?
+> You should use Content-Length and Transfer-Encoding: chunked
+
+Does the connection has to stay alive for PUT and POST requests too? The client only executes one of these requests and then terminates anyways.
+> Connection has to stay alive
+
+should images also be shown in the .html file? or should these just be stored locally?
+> Locally
+
+If I try to GET jmarshall.com or tldp.org, I get an error 303 page permanently moved, should our client be able to handle these cases? 
+> just display the error
+
+On one of the examples, the charset isn't defined in the head. The charset is in the head of the HTML page, but how do you know how to encode the HTML if you don't know the charset. 
+> If nothing mentioned -> utf-8 (The charset was windows-1252 from tcpipguide.com)
+
+www.tldp.org contains gifs, should we also implement support for .gif files?
+> Support .gif files
+
+What about print statements, should these be the same as with the terminal TELNET requests? or does it not matter?
+> (probably doesn't matter)
+
+So the images should also be stored as html file ? 
+> No just as .png or .gif or .jpg ...
+
+With SMTP, what prevents you from using whatever mail address you want in the "MAIL FROM" field and pretending to be someone you're not?
+> It is possible, can be stopped by checking domains (we don't need to know this)
+
+Wait just to be sure... the website tldp.org (which contains gifs), when I try a GET request I receive "HTTP/1.1 301 Moved 
+Permanently", we should not be able to handle a redirect in this case, right?
+> Correct
+
+If I connect using telnet to google.com for example, the prompt works as expected and the request is sent to the server after a double enter is typed. However, if I use telnet to connect to my own server, the command is sent after typing a single enter. As such, it's hard to add headers. I think this is because telnet is configured in LINEMODE. How do I prevent this behaviour?
+> The problem is on the server-side
+
+Our HTTP client only takes in three inputs: HTTP Command (GET, HEAD, PUT, POST), URI and Port. 
+Does this mean that our client is not supposed to add any additionial request headers aside from the Host header?
+> Correct
+
+So when we open the generated .html file from the client, we need to display the images, right? 
+> Correct, names of the images should be in the same path given in the html
+> NOTE: we don't need to change anything inside the HTML (external images need to be downloaded, but not used)
+
+So is it best in this case that I try to decode the head of the HTML with utf-8 and when I see it's different change the decoding of the next chunk
+> Correct
+
+Do we have to download the corresponding CSS file as well?
+> No
+
+What images do we need to retrieve? Just the <img> tags are also other tags? 
+> Only <img>
+
+Do we need to store the response of the HEAD command in an HTML page as well?
+> No, just show the response
+
+So if we download the images locally into the same relative path as used in the HTML we don't have to change anything inside the HTML file?
+> Correct
+
+Can I use a library to find the image paths? (beautifulsoup)
+> Yes, but not to download images
+
+Is the number of bytes of a chunk the first piece of data send by the server?
+> Yes, the first byte in the response is the length of the chunk
+
+Why are we not implementing HTTP/2. It has been around for a couple of years and i've read it does not support chunked transfer encoding anymore, which we are supposed to implement.
+> In practice you should always support HTTP/1.1
+
+I don't really see how you can determine the size of a chunk based on the information received from the server. And also now when the last chunk arrives. Because now I just check when the received information of the server contains </body></html>
+> The first thing you get from the server is the length of the chunk
+
+When should our client close a connection? Should we keep all socket connections open at all times or is there a case where we can close them?
+> We should close the connection when the command has finished (so don't use interactive program)
+
+Should we always properly close the connection using a 'Connection: close' header or are we allowed to just close the socket?
+> You should use Connection: close
+
+I also had a problem with the chunk sizes: the size of the last chunk looks like it is too big. When printing out the chunks the last character of the last chunk is a 0, which is the length of the next chunk. So when I don't check for the \r\n, my program gives an error because there is no next chunk length.
+> The 0 at the end defines the end of the chunk
+
+General chunked response:
+4\r\n (bytes to send)
+Wiki\r\n (data)
+6\r\n (bytes to send)
+pedia \r\n (data)
+E\r\n (bytes to send)
+in \r\n
+\r\n
+chunks.\r\n (data)
+0\r\n (final byte - 0)
+\r\n (end message)
+
+For the POST and PUT commands, does for example PUT /dir/test.png send the file test.png from the client to server and placed in the /dir location? Or do we need to define what file or from where "test.png" comes separately?
+> Correct, server must handle given path and store in the right folder
+
+We are only allowed to modify the path of the images in the HTML file, but can we use prettify to make the HTML look cleaner?
+> Yes
