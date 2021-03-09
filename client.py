@@ -154,7 +154,9 @@ def request_img(url):
         url (string): url/path of the image
     """
     ## Local images (GET to current server)
-    if url.startswith('/'):
+    if not url.startswith('http'):
+        if not url.startswith('/'):
+            url = '/' + url
         msg = make_GET(url)
         client.send(msg.encode())
         resp = handle_get_response()
@@ -163,6 +165,7 @@ def request_img(url):
 
     ## External images (open other socket to external server)
     # TODO
+    print('External message not yet implemented')
 
 
 def fix_html(html):
