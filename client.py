@@ -210,14 +210,12 @@ def handle_get_response():
     if b'Content-Length' in header:
         body = b''
         content_length = get_content_length(header)
-        iter = content_length
-        while iter > 0:
-            if iter > 1024:
-                body += client.recv(1024)
-                iter -= 1024
-            else:
-                body += client.recv(iter)
-                iter = 0
+        # NOTE: we can't just do client.recv(content_length), because the buffersize in recv(bufsize) is a maximum
+        #   so client.recv() can return less bytes than the given buffer size
+        buff_size = 1024
+        # Loop as long as the received body is not the same length as given by Content-Length
+        while len(body) != content_length:
+            body += client.recv(buff_size)
     else:
         print('Transfer-Encoding not yet implemented')
     
