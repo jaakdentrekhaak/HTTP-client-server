@@ -1,5 +1,4 @@
 import socket
-import re
 from bs4 import BeautifulSoup
 
 HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this implementation
@@ -112,10 +111,21 @@ def store_html(html):
         html (BeautifulSoup): HTML
     """
     # Store HTML body
-    open('received.html', 'w').close() # Remove contents of html file
     file = open('received.html', 'w')
     file.write(html.prettify())
     file.close()
+
+def store_img(img, path):
+    """Store image response from server in local directory
+
+    Args:
+        img (bytes): image response from server
+        path (string): path where image needs to be stored
+    """
+    file = open(path, 'w')
+    file.write(img)
+    file.close()
+
 
 def request_img(url):
     """Request the image from the server and store it locally in the same relative path.
@@ -129,7 +139,7 @@ def request_img(url):
         msg = make_GET(url)
         client.send(msg.encode())
         resp = receive_response()
-        # TODO: continue
+        store_img(resp, url)
 
 
     ## External images (open other socket to external server)
@@ -148,18 +158,12 @@ def fix_html(html):
 
     Args:
         html (BeautifulSoup): HTML body
-
-    Returns:
-        string: fixed HTML body
     """
 
     imgs = html.findAll('img')
 
     for img in imgs:
         request_img(img['src'])
-
-
-    return html
 
 def receive_response():
     """Receive response from server after request
@@ -176,34 +180,80 @@ def receive_response():
             break
     return resp
 
+def get_content_length(head):
+    """Return Content-Length of response
+
+    Args:
+        head (bytes): header of HTTP response
+
+    Returns:
+        int: length of the body of the HTTP response
+    """
+    keyword = b'Content-Length:'
+    _, keyword, after_keyword = head.partition(keyword)
+
+    # after_keyword now contains something like 1562\r\n..., so we only need the part before \r\n
+    ind = after_keyword.index(b'\r')
+    return int(after_keyword[:ind])
+
+
+def handle_get_response():
+    header = b''
+    
+    # First get headers: read byte per byte until we have the headers
+    # If we get b'\r\n\r\n', the header is read
+    while not header.endswith(b'\r\n\r\n'):
+        response = client.recv(1)
+        header += response
+    
+    # See if we need to use content-length or transfer-encoding
+    if b'Content-Length' in header:
+        body = b''
+        content_length = get_content_length(header)
+        iter = content_length
+        while iter > 0:
+            if iter > 1024:
+                body += client.recv(1024)
+                iter -= 1024
+            else:
+                body += client.recv(iter)
+                iter = 0
+    else:
+        print('Transfer-Encoding not yet implemented')
+    
+    return body
+
+
 def main():
     # Get HTTP command
     command = input('HTTP command: ')
 
     do_command(command)
 
-    # Get response from server
-    response = receive_response()
+    # # Get response from server
+    # response = receive_response()
 
-    # Store HTML body in file
-    if command == 'GET':
-        # Get HTML body
-        body = get_html_body(response)
+    print(handle_get_response())
 
-        # Prettify body
-        soup = BeautifulSoup(body, 'html.parser')
+    # # Store HTML body in file
+    # if command == 'GET':
+    #     # Get HTML body
+    #     body = get_html_body(response)
 
-        # Store body
-        store_html(soup)
+    #     # Prettify body
+    #     soup = BeautifulSoup(body, 'html.parser')
 
-        # # Fix html with images
-        # fix_html(soup)
+    #     # Store body
+    #     store_html(soup)
+
+    #     # Fix html with images
+    #     fix_html(soup)
     
-    elif command == 'HEAD':
-        print(response.decode('utf-8'))
+    # elif command == 'HEAD':
+    #     print(response.decode('utf-8'))
 
-    # Close connection
-    # TODO: send 'Connection: close' header to server
-    client.close()
+    # # Close connection
+    # # TODO: send 'Connection: close' header to server
+    # client.close()
 
 main()
