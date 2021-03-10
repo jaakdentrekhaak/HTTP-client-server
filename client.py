@@ -55,7 +55,7 @@ def make_GET(path):
         string: GET message
     """
     msg = f'GET {path} HTTP/1.1\r\n'
-    msg += f'Host:{uri}\r\n'
+    msg += f'Host: {uri}\r\n'
     msg += '\r\n'
 
     return msg
@@ -72,23 +72,24 @@ def do_command(cmd):
 
     if cmd == 'HEAD':
         msg = 'HEAD / HTTP/1.1\r\n'
-        msg += f'Host:{uri}\r\n'
+        msg += f'Host: {uri}\r\n'
         msg += '\r\n'
     elif cmd == 'GET':
         msg = make_GET('/')
     elif cmd == 'PUT':
-        put_text = input('PUT text: ')
-        msg = 'PUT / HTTP/1.1\r\n'
-        msg += f'Host:{uri}\r\n'
+        file = open('received.html', 'r')
+        html = file.read()
+        msg = 'PUT /new.html HTTP/1.1\r\n' # Just the name for our file to create on the server
+        msg += f'Host: {uri}\r\n'
         msg += 'Content-Type: text/html\r\n'
-        msg += f'Content-Length: {len(put_text)}\r\n'
+        msg += f'Content-Length: {len(html)}\r\n'
         msg += '\r\n'
-        msg += put_text + '\r\n'
+        msg += html + '\r\n'
         msg += '\r\n'
     elif cmd == 'POST':
         post_text = input('POST text: ')
         msg = 'POST / HTTP/1.1\r\n'
-        msg += f'Host:{uri}\r\n'
+        msg += f'Host: {uri}\r\n'
         msg += 'Content-Type: text/html\r\n'
         msg += f'Content-Length: {len(post_text)}\r\n'
         msg += '\r\n'
@@ -165,6 +166,7 @@ def request_img(url):
 
     ## External images (open other socket to external server)
     else:
+        # TODO
         print('External message not yet implemented')
 
 
@@ -187,21 +189,6 @@ def fix_html(html):
 
     for img in imgs:
         request_img(img['src'])
-
-def receive_response():
-    """Receive response from server after request
-
-    Returns:
-        bytes: HTTP response from server
-    """
-    resp = b''
-    while True:
-        received = client.recv(1024)
-        resp += received
-        # TODO: use Content-Length and Transfer-Encoding: chunked
-        if received.endswith(b'\r\n\r\n'):
-            break
-    return resp
 
 def get_content_length(head):
     """Return Content-Length of response
@@ -243,19 +230,30 @@ def get_next_chunk():
     
     return body
 
+def get_header():
+    """Extract the header from the HTTP server response
+
+    Returns:
+        bytes: Header from response
+    """
+    header = b''
+
+    # The header always ends with b'\r\n\r\n'
+    while not header.endswith(b'\r\n\r\n'):
+        response = client.recv(1)
+        header += response
+    
+    return header
+
 def handle_get_response():
     """Receive HTTP response from server and return response body
 
     Returns:
         bytes: HTTP response body
     """
-    header = b''
     
     # First get headers: read byte per byte until we have the headers
-    # If we get b'\r\n\r\n', the header is read
-    while not header.endswith(b'\r\n\r\n'):
-        response = client.recv(1)
-        header += response
+    header = get_header()
     
     # See if we need to use content-length or transfer-encoding
     if b'Content-Length' in header:
@@ -285,7 +283,7 @@ def main():
 
 
     # Store HTML body in file
-    if command == 'GET':
+    if command == 'GET' or command == 'POST' or command == 'PUT':
         # Get HTML body
         body = handle_get_response()
 
@@ -301,9 +299,9 @@ def main():
     # Print headers
     elif command == 'HEAD':
         # Get response from server
-        response = receive_response()
+        response = get_header()
 
-        print(response.decode('utf-8'))
+        print(response.decode('utf-8')) # Decoding for readability in terminal
 
     # Close connection
     # TODO: send 'Connection: close' header to server
