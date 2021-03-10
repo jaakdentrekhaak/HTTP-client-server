@@ -164,8 +164,8 @@ def request_img(url):
 
 
     ## External images (open other socket to external server)
-    # TODO
-    print('External message not yet implemented')
+    else:
+        print('External message not yet implemented')
 
 
 def fix_html(html):
@@ -219,6 +219,29 @@ def get_content_length(head):
     ind = after_keyword.index(b'\r')
     return int(after_keyword[:ind])
 
+def get_next_chunk():
+    """Read the size of the chunk and receive body of chunk
+
+    Returns:
+        bytes: body of the chunk
+    """
+    # Get bytes of chunk (first bytes sent in chunk), ends with '\r\n'
+    chunk_bytes = b''
+    while not (chunk_bytes.endswith(b'\r\n')):
+        chunk_bytes += client.recv(1)
+
+    chunk_bytes = chunk_bytes[:-2] # Cut off '\r\n'
+    chunk_bytes = int(chunk_bytes, 16) # From hexadecimal to decimal
+
+    # If chunk_bytes == 0, we reached the last chunk
+    body = b''
+    if chunk_bytes != 0:
+        # Receive body of chunk
+        # NOTE: To make the next call of this function more easy: already read in last '\r\n', otherwise the while loop above will end if '\r\n' is read
+        while len(body) != chunk_bytes + len(b'\r\n'):
+            body += client.recv(1)
+    
+    return body
 
 def handle_get_response():
     """Receive HTTP response from server and return response body
@@ -245,7 +268,11 @@ def handle_get_response():
         while len(body) != content_length:
             body += client.recv(buff_size)
     else:
-        print('Transfer-Encoding not yet implemented')
+        body = b''
+        chunk = get_next_chunk()
+        while len(chunk) != 0:
+            body += chunk
+            chunk = get_next_chunk()
     
     return body
 
