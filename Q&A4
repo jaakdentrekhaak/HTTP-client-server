@@ -1,0 +1,19 @@
+When I GET-request the tcpipguide, 1 single image does not render while src path is correct. (I have checked manually). All the other images get rendered. How can I resolve this?
+the image path is "/images/Content%20Overview/btn_contentovervup.gif"
+> Convert the image path to ASCII, because percentage sign doesn't work otherwise.
+
+Regarding the assignment: https://www.jmarshall.com/easy/http/#http1.1s8 tells us that the server response for a 501 not implemented should be 
+HTTP/1.1 501 Not Implemented
+[blank line here]
+Is this strictly only these 2 header lines, or can the date header for example be included
+> Safer to follow strictly (but we don't need to implement 501)
+
+Are there any mandatory headers that the server should provide? because there are a lot and i'm not sure which ones i should return
+> Defined in the specifications what we need to do
+
+So we may use \r\n\r\n while using GET to separate the included header from the body and search for the first hexadecimal content-length. From then on, we should use the content length provided at each start of the chunk, right?
+> Correct
+
+In the assignment it says that we need to create and store the body of response after each request in an html file, is this also needed for HEAD requests since the data is only meta data?
+> Just print header to terminal
+
