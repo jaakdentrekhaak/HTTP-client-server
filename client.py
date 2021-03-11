@@ -123,6 +123,23 @@ def store_img(img, path):
     file.write(img)
     file.close()
 
+def get_external_image(website, path):
+    """Open new socket to website, send GET for external image and return server response with image
+
+    Args:
+        website (string): name of the website
+        path (string): relative path of the external image
+
+    Returns:
+        bytes: requested image
+    """
+    cl = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sv = socket.gethostbyname(website)
+    cl.connect((sv, 80))
+    cl.send(create_get_message(path))
+    resp = handle_response()
+    cl.close()
+    return resp
 
 def request_img(url):
     """Request the image from the server and store it locally in the same relative path.
@@ -143,9 +160,12 @@ def request_img(url):
 
     ## External images (open other socket to external server)
     else:
-        # TODO
-        print('External message not yet implemented')
-
+        # E.g. https://ssl.gstatic.com/gb/images/b_8d5afc09.png
+        split_url = url.split('/')
+        website = split_url[2]
+        img_path = '/' + '/'.join(split_url[3:])
+        store_img(get_external_image(website, img_path), img_path)
+        print('yeet')
 
 def fix_html(html):
     """Find missing images in the given html, request them from the server and
@@ -284,7 +304,7 @@ def main():
         print(response.decode('utf-8')) # Decoding for readability in terminal
 
     # Close connection
-    # TODO: send 'Connection: close' header to server
+    # TODO (optional): send 'Connection: close' header to server
     client.close()
 
 main()
