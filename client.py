@@ -165,7 +165,6 @@ def request_img(url):
         website = split_url[2]
         img_path = '/' + '/'.join(split_url[3:])
         store_img(get_external_image(website, img_path), img_path)
-        print('yeet')
 
 def fix_html(html):
     """Find missing images in the given html, request them from the server and
