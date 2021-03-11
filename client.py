@@ -112,21 +112,14 @@ def store_html(html):
 
 
 def store_img(img, path):
-    """Store image response from server in local directory
+    """Store image response from server in the local images folder
 
     Args:
         img (bytes): image response from server
-        path (string): path where image needs to be stored
+        path (string): path of the image that needs to be stored
     """
-    # path = /blabla/blabla/blabla.png
-    dirs = path.split('/') # Result: ['', 'blabla', 'blabla', 'blabla.png']
-    dirs = dirs[:-1] # Result: ['', 'blabla', 'blabla']
-    dirs = '.' + '/'.join(dirs) # Result: './blabla/blabla'
 
-    # Create directory if it doesn't exist
-    Path(dirs).mkdir(parents=True, exist_ok=True)
-
-    file = open('.' + path, 'wb')
+    file = open('images/' + path.split('/')[-1], 'wb')
     file.write(img)
     file.close()
 
@@ -141,7 +134,7 @@ def request_img(url):
     ## Local images (GET to current server)
     if not url.startswith('http'):
         if not url.startswith('/'):
-            url = '/' + url
+            url = '/' + url 
         msg = create_get_message(url)
         client.send(msg.encode())
         resp = handle_response()
@@ -173,6 +166,12 @@ def fix_html(html):
 
     for img in imgs:
         request_img(img['src'])
+        # Change src to local images folder (e.g. images/yeet.png)
+        image_name = img['src'].split('/')[-1] # Grab image name from path
+        img['src'] = 'images/' + image_name
+    
+    # Save HTML in which we changed the src of the images to our local images folder
+    store_html(html)
 
 def get_content_length(head):
     """Return Content-Length of response
@@ -273,9 +272,6 @@ def main():
 
         # Prettify body
         soup = BeautifulSoup(body, 'html.parser')
-
-        # Store body
-        store_html(soup)
 
         # Fix html with images
         fix_html(soup)
