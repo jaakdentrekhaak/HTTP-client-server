@@ -45,7 +45,7 @@ except socket.gaierror:
 client.connect((server, port))
 
 
-def make_GET(path):
+def create_get_message(path):
     """Generate GET message with given path
 
     Args:
@@ -75,7 +75,7 @@ def do_command(cmd):
         msg += f'Host: {uri}\r\n'
         msg += '\r\n'
     elif cmd == 'GET':
-        msg = make_GET('/')
+        msg = create_get_message('/')
     elif cmd == 'PUT':
         file = open('received.html', 'r')
         html = file.read()
@@ -97,23 +97,6 @@ def do_command(cmd):
         msg += '\r\n'
 
     client.send(msg.encode()) # Encode with default utf-8
-
-def get_html_body(resp):
-    """Return html body from HTTP response
-
-    Args:
-        resp (bytes): HTTP response
-
-    Returns:
-        string: HTML body
-    """
-    # Get HTML body
-    # TODO: maybe use content-length and transfer-encoding?
-    start = resp.index(b'<!doctype html>')
-    end = resp.index(b'</html>') + len(b'</html>')
-    body = resp[start:end]
-
-    return body
 
 def store_html(html):
     """Store html into HTML file
@@ -158,9 +141,9 @@ def request_img(url):
     if not url.startswith('http'):
         if not url.startswith('/'):
             url = '/' + url
-        msg = make_GET(url)
+        msg = create_get_message(url)
         client.send(msg.encode())
-        resp = handle_get_response()
+        resp = handle_response()
         store_img(resp, url)
 
 
@@ -245,7 +228,7 @@ def get_header():
     
     return header
 
-def handle_get_response():
+def handle_response():
     """Receive HTTP response from server and return response body
 
     Returns:
@@ -285,7 +268,7 @@ def main():
     # Store HTML body in file
     if command == 'GET' or command == 'POST' or command == 'PUT':
         # Get HTML body
-        body = handle_get_response()
+        body = handle_response()
 
         # Prettify body
         soup = BeautifulSoup(body, 'html.parser')
