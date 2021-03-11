@@ -10,6 +10,7 @@ HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this
 # Get URI (e.g. http://www.google.com)
 uri = input('URI: 1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip: ') or 'www.example.com'
 
+# If number is entered -> map to website
 if uri == '1':
     uri = 'www.example.com'
 elif uri == '2':
@@ -30,7 +31,7 @@ if uri.startswith('http://'):
     uri = uri[len('http://'):]
 
 # Get port
-port = input('Port (press enter to use default): ') or 80
+port = input('Port (press enter to use default 80): ') or 80
 
 # Create TCP socket with ipv4
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
