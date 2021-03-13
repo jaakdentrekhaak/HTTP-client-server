@@ -1,5 +1,6 @@
 import socket
 import threading
+from email.utils import formatdate # For formatting date to HTTP date
 
 # Status codes
 OK = b'200 OK'
@@ -57,7 +58,22 @@ def do_head(client, headers):
     pass
 
 def do_get(client, headers):
-    pass
+    # Get path of requested file
+    path = headers.split(b' ')[1]
+    
+    try:
+        file = open(path, 'r')
+    except:
+        # If file not found, send 404 Not Found
+        # TODO
+        pass
+    
+    # Create response bytes
+    response = b'HTTP/1.1 ' + OK + '\r\n'
+    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() # Returns date as needed in RFC 2616
+    response += b''
+
+
 
 def do_post(client):
     pass

@@ -31,7 +31,8 @@ if uri.startswith('http://'):
     uri = uri[len('http://'):]
 
 # Get port
-port = int(input('Port (press enter to use default 80): ')) or 80
+port = input('Port (press enter to use default 80): ') or 80
+port = int(port)
 
 # Create TCP socket with ipv4
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
