@@ -31,18 +31,21 @@ if uri.startswith('http://'):
     uri = uri[len('http://'):]
 
 # Get port
-port = input('Port (press enter to use default 80): ') or 80
+port = int(input('Port (press enter to use default 80): ')) or 80
 
 # Create TCP socket with ipv4
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Connect to server
-try:  
-    server = socket.gethostbyname(uri) # TODO: also possible that user wants to connect to given ipv4 adress
-except socket.gaierror:  
-    # this means could not resolve the host  
-    print ('There was an error resolving the host') 
-    exit()
+if uri.startswith('192'): # possible that user wants to connect to given ipv4 adress
+        server = uri
+else:
+    try:
+        server = socket.gethostbyname(uri)
+    except socket.gaierror:  
+        # this means could not resolve the host  
+        print ('There was an error resolving the host') 
+        exit()
 client.connect((server, port))
 
 
@@ -196,7 +199,7 @@ def get_content_length(head):
     """Return Content-Length of response
 
     Args:
-        head (bytes): header of HTTP response
+        head (bytes): headers of HTTP response
 
     Returns:
         int: length of the body of the HTTP response
@@ -227,25 +230,27 @@ def get_next_chunk():
     if chunk_bytes != 0:
         # Receive body of chunk
         # NOTE: To make the next call of this function more easy: already read in last '\r\n', otherwise the while loop above will end if '\r\n' is read
-        while len(body) != chunk_bytes + len(b'\r\n'):
-            body += client.recv(1)
+        current_length = len(body)
+        actual_length = chunk_bytes + len(b'\r\n')
+        while current_length != actual_length:
+            body += client.recv(actual_length - current_length) # We can still receive the difference between the actual length of the response and the current length
     
     return body
 
-def get_header():
-    """Extract the header from the HTTP server response
+def get_headers():
+    """Extract the headers from the HTTP server response
 
     Returns:
-        bytes: Header from response
+        bytes: headers from response
     """
-    header = b''
+    headers = b''
 
-    # The header always ends with b'\r\n\r\n'
-    while not header.endswith(b'\r\n\r\n'):
+    # The headers always end with b'\r\n\r\n'
+    while not headers.endswith(b'\r\n\r\n'):
         response = client.recv(1)
-        header += response
+        headers += response
     
-    return header
+    return headers
 
 def handle_response():
     """Receive HTTP response from server and return response body
@@ -255,12 +260,12 @@ def handle_response():
     """
     
     # First get headers: read byte per byte until we have the headers
-    header = get_header()
+    headers = get_headers()
     
     # See if we need to use content-length or transfer-encoding
-    if b'Content-Length' in header:
+    if b'Content-Length' in headers:
         body = b''
-        content_length = get_content_length(header)
+        content_length = get_content_length(headers)
         # NOTE: we can't just do client.recv(content_length), because the buffersize in recv(bufsize) is a maximum
         #   so client.recv() can return less bytes than the given buffer size
         buff_size = 1024
@@ -298,7 +303,7 @@ def main():
     # Print headers
     elif command == 'HEAD':
         # Get response from server
-        response = get_header()
+        response = get_headers()
 
         print(response.decode('utf-8')) # Decoding for readability in terminal
 

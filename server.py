@@ -1,33 +1,77 @@
-# NOTE: for the demo we have to explain the difference between HTTP/1.0 and HTTP/1.1,
-# in the assignment we use HTTP/1.1
 import socket
+import threading
 
-SERVER = "192.168.1.31" # TODO: use socket library to get ipv4 instead of hardcoding
-PORT = 5050 # Just some port that's not used by the machine
-ADDR = (SERVER, PORT)
+# Status codes
+OK = b'200 OK'
+NOT_FOUND = b'404 Not Found'
+BAD_REQUEST = b'400 Bad Request'
+SERVER_ERROR = b'500 Server Error' 
+NOT_MODIFIED = b'304 Not Modified'
 
-HEADER = 64 # TODO: figure out what is the right size (bytes) for the received message
-FORMAT = 'utf-8' # Find different format when it comes to images
-DISCONNECT_MESSAGE = 'disconnect'
+# Get ipv4 adress (socket.gethostbyname(socket.gethostname()) returns 127..., not 192...)
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+server = s.getsockname()[0]
+s.close()
 
+port = 5050 # Just some port that's not used by the machine
+addr = (server, port)
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(ADDR)
+server.bind(addr)
 
-def start(): # TODO: this will only work for one client at a time -> use threading library to start different threads in parallel for multiple client connection
+def handle_connection(client, _):
+
+    # Get the headers from the client request
+    headers = get_headers(client)
+
+    # If the headers don't contain the Host: header, respond with 400: Bad Request
+    if not b'Host: ' in headers:
+        pass # TODO
+
+    # TODO: check in the first line if HTTP/1.1 is used
+    
+    if headers.startswith(b'GET'):
+        do_get(client, headers)
+
+    print(headers)
+
+def get_headers(client):
+    """Extract the headers from the HTTP client request
+
+    Args:
+        client (object): client socket
+
+    Returns:
+        bytes: headers from request
+    """
+    headers = b''
+
+    # The headers always end with b'\r\n\r\n'
+    while not headers.endswith(b'\r\n\r\n'):
+        response = client.recv(1)
+        headers += response
+    
+    return headers
+
+def do_head(client, headers):
+    pass
+
+def do_get(client, headers):
+    pass
+
+def do_post(client):
+    pass
+
+def do_put(client):
+    pass
+
+def main():
     server.listen()
     
     while True:
-        conn, addr = server.accept() # blocking: waits until client connected
-        print('[NEW CONNECTION]', addr[0], 'connected.')
-        connected = True
-        while connected:
-            msg = conn.recv(HEADER).decode(FORMAT).rstrip() # rstrip: remove special characters
-            print('[MESSAGE]', msg)
-            if msg == DISCONNECT_MESSAGE:
-                connected = False
-            conn.send(bytes(connected)) # Needed to let client know if he's still connected
-        print('[CLOSE CONNECTION]', addr[0], 'disconnected')
-        conn.close()
+        client, address = server.accept() # blocking: waits until client connected
+        print('[NEW CONNECTION]', address[0], 'connected.')
+        threading.Thread(target=handle_connection, args=(client, address)).start()
 
 print('[STARTING] server is starting...')
-start()
+main()
