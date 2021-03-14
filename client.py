@@ -231,10 +231,9 @@ def get_next_chunk():
     if chunk_bytes != 0:
         # Receive body of chunk
         # NOTE: To make the next call of this function more easy: already read in last '\r\n', otherwise the while loop above will end if '\r\n' is read
-        current_length = len(body)
         actual_length = chunk_bytes + len(b'\r\n')
-        while current_length != actual_length:
-            body += client.recv(actual_length - current_length) # We can still receive the difference between the actual length of the response and the current length
+        while len(body) != actual_length:
+            body += client.recv(actual_length - len(body)) # We can still receive the difference between the actual length of the response and the current length
     
     return body
 
