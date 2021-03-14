@@ -15,4 +15,5 @@ Activate the virtual environment: `source venv/bin/activate`
     response will be stored in 'received.html'
 
 ## Start server on own ipv4 adress
-`python3 server.py`
+`python3 server.py`  
+The content of POST and PUT requests will be places inside the 'server_text_files'-folder

@@ -1,6 +1,8 @@
+import os
 import socket
 import threading
-from email.utils import formatdate # For formatting date to HTTP date
+from email.utils import formatdate, parsedate # For formatting date to HTTP date
+import time
 
 # Status codes
 OK = b'200 OK'
@@ -37,12 +39,14 @@ def handle_connection(client, _):
             client.send(create_error_message(BAD_REQUEST))
         else:
             modified = True
-            if b'If-Modified-Since' in headers:
-                # Check if file is modified since given date.
-                date = get_modified_since(headers)
-                # If file not modified: modified = False and return 304 Not Modified
-                # TODO
+
+            # Check if file is modified since given date if the If-Modified-Since header is present.
+            if b'If-Modified-Since' in headers and not is_modified_since(headers):
+                # TODO: test this functionality
+                response = create_error_message(NOT_MODIFIED)
+                client.send(response)
                 modified = False
+
             if modified:
                 if headers.startswith(b'GET'):
                     do_get(client, headers)
@@ -194,6 +198,14 @@ def get_client_input(client, headers):
     return body
 
 def do_post_put(client, headers):
+    """Handle POST and PUT request. Both are similar in functionality. 
+    For a POST, the data is appended to the existing file or a new file is created.
+    For a PUT, a new file is created.
+
+    Args:
+        client (object): Client socket
+        headers (bytes): Headers of the client request
+    """
     # Get name of the given file
     path = headers.split(b' ')[1].decode('utf-8')
     total_file_name = path.split('/')[-1] # E.g. index.html
@@ -213,7 +225,7 @@ def do_post_put(client, headers):
 
     # Send response to server
     response = b'HTTP/1.1 ' + OK + b'\r\n'
-    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2822
     file = open('server.html', 'r')
     data = file.read()
     file.close()
@@ -225,11 +237,44 @@ def do_post_put(client, headers):
     client.send(response)
 
 
-def get_modified_since(headers):
-    pass
-    # TODO
+def is_modified_since(headers):
+    """Check if the requested file is modified since the date given in the If-Modified-Since header
+
+    Args:
+        headers (bytes): Headers of the client HTTP request
+
+    Returns:
+        boolean: Is file modified since given date?
+    """
+    # Get name of the given file
+    path = headers.split(b' ')[1].decode('utf-8')
+    total_file_name = path.split('/')[-1] # E.g. index.html
+    file_name = total_file_name.split('.')[0] # E.g. index
+
+    # Date will be given as: If-Modified-Since: Sun, 14 Mar 2021 17:10:27 GMT
+    index_start = headers.index(b'If-Modified-Since: ') + len(b'If-Modified-Since: ')
+    temp = headers[index_start:]
+    index_end = temp.index(b'GMT') + len(b'GMT')
+    date = temp[:index_end] # E.g. Sun, 14 Mar 2021 17:10:27 GMT
+
+    # Parse RFC 2822 date to seconds since epoch
+    date_to_check = time.mktime(parsedate(date))
+
+    # Get date/time of last modification (returns seconds since epoch)
+    moddate = os.stat('server_text_files/' + file_name + '.txt')[8]
+
+    return moddate > date_to_check
+    
 
 def create_error_message(error):
+    """Create an HTTP response for an error message
+
+    Args:
+        error (string): The type of error
+
+    Returns:
+        bytes: HTTP response
+    """
     response = b'HTTP/1.1 ' + error + b'\r\n'
     response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
     file = open('something_went_wrong.html', 'r')
