@@ -29,14 +29,33 @@ def handle_connection(client, _):
 
         # If the headers don't contain the Host: header, respond with 400: Bad Request
         if not b'Host: ' in headers:
-            pass # TODO
+            response = b'HTTP/1.1 ' + BAD_REQUEST + b'\r\n'
+            response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+            file = open('something_went_wrong.html', 'r').read()
+            response += b'Content-Type: text/html\r\n'
+            response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
+            response += file.encode()
+            response += b'\r\n\r\n'
+            client.send(response)
 
-        # TODO: check in the first line if HTTP/1.1 is used
-        
-        if headers.startswith(b'GET'):
-            do_get(client, headers)
-        elif headers.startswith(b'HEAD'):
-            do_head(client, headers)
+        else:
+            modified = True
+            if b'If-Modified-Since' in headers:
+                # Check if file is modified since given date.
+                date = get_modified_since(headers)
+                # If file not modified: modified = False and return 304 Not Modified
+                # TODO
+            if modified:
+                if headers.startswith(b'GET'):
+                    do_get(client, headers)
+                elif headers.startswith(b'HEAD'):
+                    do_head(client, headers)
+                elif headers.startswith(b'POST'):
+                    do_post(client, headers)
+                elif headers.startswith(b'PUT'):
+                    do_put(client, headers)
+                else:
+                    print('[UNKNOWN CMD] The given command is unknown')
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
@@ -65,7 +84,7 @@ def head_response(headers):
     Returns:
         response (bytes): Response to a HEAD request
         path (string): path of the requested file
-        file (object): the requested file if it exists or not_found.html if the requested file is not found
+        file (object): the requested file if it exists or something_went_wrong.html if the requested file is not found
     """
     # Get path of requested file
     path = headers.split(b' ')[1]
@@ -109,7 +128,7 @@ def head_response(headers):
         
         response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
         
-        file = open('not_found.html', 'r').read()
+        file = open('something_went_wrong.html', 'r').read()
         response += b'Content-Type: text/html\r\n'
         response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
         response += file.encode()
@@ -147,11 +166,15 @@ def do_get(client, headers):
     client.send(response)
 
 
-def do_post(client):
+def do_post(client, headers):
     pass
 
-def do_put(client):
+def do_put(client, headers):
     pass
+
+def get_modified_since(headers):
+    pass
+    # TODO
 
 def main():
     server.listen()

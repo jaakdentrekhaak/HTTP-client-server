@@ -1,7 +1,5 @@
 import socket
 from bs4 import BeautifulSoup
-import os
-from pathlib import Path
 
 
 HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this implementation
@@ -193,17 +191,17 @@ def fix_html(html):
     # Save HTML in which we changed the src of the images to our local images folder
     store_html(html)
 
-def get_content_length(head):
+def get_content_length(headers):
     """Return Content-Length of response
 
     Args:
-        head (bytes): headers of HTTP response
+        headers (bytes): headers of HTTP response
 
     Returns:
         int: length of the body of the HTTP response
     """
     keyword = b'Content-Length:'
-    _, keyword, after_keyword = head.partition(keyword)
+    _, keyword, after_keyword = headers.partition(keyword)
 
     # after_keyword now contains something like 1562\r\n..., so we only need the part before \r\n
     ind = after_keyword.index(b'\r')
