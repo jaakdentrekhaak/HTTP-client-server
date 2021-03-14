@@ -22,18 +22,19 @@ server.bind(addr)
 
 def handle_connection(client, _):
 
-    # Get the headers from the client request
-    headers = get_headers(client)
-    print('headers:', headers)
+    while True:
+        # Get the headers from the client request
+        headers = get_headers(client)
+        print('[REQUEST] headers:', headers)
 
-    # If the headers don't contain the Host: header, respond with 400: Bad Request
-    if not b'Host: ' in headers:
-        pass # TODO
+        # If the headers don't contain the Host: header, respond with 400: Bad Request
+        if not b'Host: ' in headers:
+            pass # TODO
 
-    # TODO: check in the first line if HTTP/1.1 is used
-    
-    if headers.startswith(b'GET'):
-        do_get(client, headers)
+        # TODO: check in the first line if HTTP/1.1 is used
+        
+        if headers.startswith(b'GET'):
+            do_get(client, headers)
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
@@ -68,8 +69,11 @@ def do_get(client, headers):
         path = path[1:] # Path without first /
     
     try:
-        file = open(path, 'r').read()
-    except:
+        if path.endswith(b'png') or path.endswith(b'jpg'):
+            file = open(path, 'rb').read()
+        else:
+            file = open(path, 'r').read()
+    except IOError:
         # If file not found, send 404 Not Found
         # TODO
         print('File doesn\'t exist')
@@ -89,15 +93,13 @@ def do_get(client, headers):
     elif path.endswith(b'html'):
         response += b'text/html\r\n'
 
-    response += b'Content-Length: ' + str(len(file) + len(b'\r\n\r\n')).encode() + b'\r\n'
-
-    response += b'\r\n'
-
-    response += file.encode() # TODO: does this work with images?
-
-    response += b'\r\n\r\n'
-
-    print('response:', response)
+    if path.endswith(b'png') or path.endswith(b'jpg'):
+        response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
+        response += file
+    else:
+        response += b'Content-Length: ' + str(len(file) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
+        response += file.encode()
+        response += b'\r\n\r\n'
 
     client.send(response)
 
