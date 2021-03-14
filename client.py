@@ -85,16 +85,18 @@ def do_command(cmd):
         msg = 'PUT /new.html HTTP/1.1\r\n' # Just the name for our file to create on the server
         msg += f'Host: {uri}\r\n'
         msg += 'Content-Type: text/html\r\n'
-        msg += f'Content-Length: {len(html)}\r\n'
+        length = len(html) + len(b'\r\n\r\n')
+        msg += f'Content-Length: {length}\r\n'
         msg += '\r\n'
         msg += html + '\r\n'
         msg += '\r\n'
     elif cmd == 'POST':
         post_text = input('POST text: ')
-        msg = 'POST / HTTP/1.1\r\n'
+        msg = 'POST /random.txt HTTP/1.1\r\n'
         msg += f'Host: {uri}\r\n'
         msg += 'Content-Type: text/html\r\n'
-        msg += f'Content-Length: {len(post_text)}\r\n'
+        length = len(post_text) + len(b'\r\n\r\n')
+        msg += f'Content-Length: {length}\r\n'
         msg += '\r\n'
         msg += post_text + '\r\n'
         msg += '\r\n'

@@ -204,10 +204,10 @@ def do_post_put(client, headers):
 
     # If POST: append to existing file or create new one if file doesn't exist
     if headers.startswith(b'POST'):
-        file = open('server_text_files/' + file_name + '.txt', 'a')
+        file = open('server_text_files/' + file_name + '.txt', 'ab')
     # If PUT: create new file
     elif headers.startswith(b'PUT'):
-        file = open('server_text_files/' + file_name + '.txt', 'w')
+        file = open('server_text_files/' + file_name + '.txt', 'wb')
     file.write(data)
     file.close()
 
@@ -218,7 +218,7 @@ def do_post_put(client, headers):
     data = file.read()
     file.close()
     response += b'Content-Type: text/html\r\n'
-    response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
+    response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
     response += data.encode()
     response += b'\r\n\r\n'
     
