@@ -37,35 +37,17 @@ def handle_connection(client, _):
         # If the headers don't contain the Host: header, respond with 400: Bad Request
         if not b'Host: ' in headers:
             client.send(create_error_message(BAD_REQUEST))
+
         else:
-            modified = True
-
-            if b'If-Modified-Since' in headers:
-                # Check if file exists
-                # Get name of the given file
-                path = headers.split(b' ')[1].decode('utf-8')
-                total_file_name = path.split('/')[-1] # E.g. index.html
-                file_name = total_file_name.split('.')[0] # E.g. index
-                if not os.path.isfile('server_text_files/' + file_name + '.txt'):
-                    response = create_error_message(NOT_FOUND)
-                    client.send(response)
-
-                # Check if file is modified since given date
-                elif not is_modified_since(headers):
-                    response = create_error_message(NOT_MODIFIED)
-                    client.send(response)
-                    modified = False
-
-            if modified:
-                if headers.startswith(b'GET'):
-                    do_get(client, headers)
-                elif headers.startswith(b'HEAD'):
-                    do_head(client, headers)
-                elif headers.startswith(b'PUT') or headers.startswith(b'POST'):
-                    do_post_put(client, headers)
-                else:
-                    # Send server error if command not found
-                    client.send(create_error_message(SERVER_ERROR))
+            if headers.startswith(b'GET'):
+                do_get(client, headers)
+            elif headers.startswith(b'HEAD'):
+                do_head(client, headers)
+            elif headers.startswith(b'PUT') or headers.startswith(b'POST'):
+                do_post_put(client, headers)
+            else:
+                # Send server error if command not found
+                client.send(create_error_message(SERVER_ERROR))
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
@@ -85,6 +67,45 @@ def get_headers(client):
     
     return headers
 
+def create_head_message(path):
+    """Create a HTTP message for HEAD request
+
+    Args:
+        path (bytes): path of the requested file
+
+    Returns:
+        response (bytes): HTTP message
+        data (bytes): content of requested file
+    """
+    if path.endswith(b'png') or path.endswith(b'jpg'):
+        file = open(path, 'rb')
+    else:
+        file = open(path, 'r')
+    data = file.read()
+    file.close()
+    
+    # Create response bytes
+    response = b'HTTP/1.1 ' + OK + b'\r\n'
+    
+    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+    
+    response += b'Content-Type: '
+
+    # Currently only supports png, jpeg and html files
+    if path.endswith(b'png'):
+        response += b'image/png\r\n'
+    elif path.endswith(b'jpg'):
+        response += b'image/jpg\r\n'
+    elif path.endswith(b'html'):
+        response += b'text/html\r\n'
+
+    if path.endswith(b'png') or path.endswith(b'jpg'):
+        response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
+    else:
+        response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
+
+    return response, data
+
 def head_response(headers):
     """Generate the HTTP response for a HEAD request.
 
@@ -96,6 +117,8 @@ def head_response(headers):
         path (string): path of the requested file
         data (object): the content of the requested file if it exists or something_went_wrong.html if the requested file is not found
     """
+    data = None
+
     # Get path of requested file
     path = headers.split(b' ')[1]
 
@@ -106,39 +129,19 @@ def head_response(headers):
     if path.startswith(b'/'):
         path = path[1:] # Path without first /
     
-    try: # If requested file exists
-        if path.endswith(b'png') or path.endswith(b'jpg'):
-            file = open(path, 'rb')
-            data = file.read()
-            file.close()
-        else:
-            file = open(path, 'r')
-            data = file.read()
-            file.close()
-        
-        # Create response bytes
-        response = b'HTTP/1.1 ' + OK + b'\r\n'
-        
-        response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
-        
-        response += b'Content-Type: '
-        # Currently only supports png, jpeg and html files
-        if path.endswith(b'png'):
-            response += b'image/png\r\n'
-        elif path.endswith(b'jpg'):
-            response += b'image/jpg\r\n'
-        elif path.endswith(b'html'):
-            response += b'text/html\r\n'
-
-        if path.endswith(b'png') or path.endswith(b'jpg'):
-            response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
-        else:
-            response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
-
-    except IOError: # If requested file doesn't exist
-        # If file not found, send 404 Not Found
+    # Check if file exists
+    if not os.path.isfile(path):
         response = create_error_message(NOT_FOUND)
-        data = None
+
+    # Check if file is modified since given date
+    elif b'If-Modified-Since' in headers and not is_modified_since(headers):
+        response = b'HTTP/1.1 ' + NOT_MODIFIED + b'\r\n'
+        response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+        response += b'\r\n'
+
+    else:
+        response, data = create_head_message(path)
+
 
     return response, path, data
 
@@ -163,11 +166,13 @@ def do_get(client, headers):
     # The response to a GET request is the same as for a HEAD request, except now the requested file is included (if found)
     response, path, data = head_response(headers)
 
-    if path.endswith(b'png') or path.endswith(b'jpg'):
-        response += data
-    else:
-        response += data.encode()
-        response += b'\r\n\r\n'
+    # If there was an error, data will be None (so an error message will be sent)
+    if data is not None:
+        if path.endswith(b'png') or path.endswith(b'jpg'):
+            response += data
+        else:
+            response += data.encode()
+            response += b'\r\n\r\n'
 
     client.send(response)
 
@@ -216,6 +221,7 @@ def do_post_put(client, headers):
         client (object): Client socket
         headers (bytes): Headers of the client request
     """
+
     # Get name of the given file
     path = headers.split(b' ')[1].decode('utf-8')
     total_file_name = path.split('/')[-1] # E.g. index.html
@@ -256,10 +262,15 @@ def is_modified_since(headers):
     Returns:
         boolean: Is file modified since given date?
     """
-    # Get name of the given file
+    # Get path of requested file
     path = headers.split(b' ')[1].decode('utf-8')
-    total_file_name = path.split('/')[-1] # E.g. index.html
-    file_name = total_file_name.split('.')[0] # E.g. index
+
+    # If path is /, server.html is served
+    if path == '/':
+        path = 'server.html'
+    
+    if path.startswith('/'):
+        path = path[1:] # Path without first /
 
     # Date will be given as: If-Modified-Since: Sun, 14 Mar 2021 17:10:27 GMT
     index_start = headers.index(b'If-Modified-Since: ') + len(b'If-Modified-Since: ')
@@ -271,7 +282,7 @@ def is_modified_since(headers):
     date_to_check = time.mktime(parsedate(date))
 
     # Get date/time of last modification (returns seconds since epoch)
-    moddate = os.stat('server_text_files/' + file_name + '.txt')[8]
+    moddate = os.stat(path)[8]
 
     return moddate > date_to_check
     
