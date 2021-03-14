@@ -68,38 +68,41 @@ def do_get(client, headers):
     if path.startswith(b'/'):
         path = path[1:] # Path without first /
     
-    try:
+    try: # If requested file exists
         if path.endswith(b'png') or path.endswith(b'jpg'):
             file = open(path, 'rb').read()
         else:
             file = open(path, 'r').read()
-    except IOError:
-        # If file not found, send 404 Not Found
-        # TODO
-        print('File doesn\'t exist')
-        exit()
-    
-    # Create response bytes
-    response = b'HTTP/1.1 ' + OK + b'\r\n'
-    
-    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
-    
-    response += b'Content-Type: '
-    # Currently only supports png, jpeg and html files
-    if path.endswith(b'png'):
-        response += b'image/png\r\n'
-    elif path.endswith(b'jpg'):
-        response += b'image/jpg\r\n'
-    elif path.endswith(b'html'):
-        response += b'text/html\r\n'
+        
+        # Create response bytes
+        response = b'HTTP/1.1 ' + OK + b'\r\n'
+        
+        response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+        
+        response += b'Content-Type: '
+        # Currently only supports png, jpeg and html files
+        if path.endswith(b'png'):
+            response += b'image/png\r\n'
+        elif path.endswith(b'jpg'):
+            response += b'image/jpg\r\n'
+        elif path.endswith(b'html'):
+            response += b'text/html\r\n'
 
-    if path.endswith(b'png') or path.endswith(b'jpg'):
-        response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
-        response += file
-    else:
-        response += b'Content-Length: ' + str(len(file) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
-        response += file.encode()
-        response += b'\r\n\r\n'
+        if path.endswith(b'png') or path.endswith(b'jpg'):
+            response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
+            response += file
+        else:
+            response += b'Content-Length: ' + str(len(file) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
+            response += file.encode()
+            response += b'\r\n\r\n'
+
+    except IOError: # If requested file doesn't exist
+        # If file not found, send 404 Not Found
+        # Create response bytes
+        response = b'HTTP/1.1 ' + NOT_FOUND + b'\r\n'
+        
+        response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+        response += b'\r\n'
 
     client.send(response)
 

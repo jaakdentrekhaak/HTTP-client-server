@@ -1,0 +1,3 @@
+Changes made in Firefox to view server in browser (not working, because HTTP-version is set to 'undefined' in request):
+- in search bar: `about:config`
+    - browser.fixup.fallback-to-https: true -> false
