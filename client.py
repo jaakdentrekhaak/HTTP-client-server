@@ -6,7 +6,8 @@ HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this
 
 
 # Get URI (e.g. http://www.google.com)
-uri = input('URI: 1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip: ') or 'www.example.com'
+print('Enter the ipv4 adress of a server, the link of a website or choose from the following options by entering the corresponding number.')
+uri = input('1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip: ') or 'www.example.com'
 
 # If number is entered -> map to website
 if uri == '1':
@@ -29,7 +30,7 @@ if uri.startswith('http://'):
     uri = uri[len('http://'):]
 
 # Get port
-port = input('Port (press enter to use default 80): ') or 80
+port = input('Port (press enter for default port 80; own server uses port 5050): ') or 80
 port = int(port)
 
 # Create TCP socket with ipv4
@@ -73,32 +74,23 @@ def do_command(cmd):
         exit()
 
     if cmd == 'HEAD':
-        msg = 'HEAD / HTTP/1.1\r\n'
+        path = input('Enter path of the file you want request (press enter for default /): ') or '/'
+        msg = f'HEAD {path} HTTP/1.1\r\n'
         msg += f'Host: {uri}\r\n'
         msg += '\r\n'
     elif cmd == 'GET':
-        msg = create_get_message('/')
-    elif cmd == 'PUT':
-        file = open('received.html', 'r')
-        html = file.read()
-        file.close()
-        msg = 'PUT /new.html HTTP/1.1\r\n' # Just the name for our file to create on the server
+        path = input('Enter path of the file you want request (press enter for default /): ') or '/'
+        msg = create_get_message(path)
+    elif cmd == 'PUT' or cmd == 'POST':
+        path = input('Enter path of the file you want to write to (press enter for default /test.txt): ') or '/test.txt'
+        text = input('Enter text you want to send to the server: ')
+        msg = f'{cmd} {path} HTTP/1.1\r\n'
         msg += f'Host: {uri}\r\n'
         msg += 'Content-Type: text/html\r\n'
-        length = len(html) + len(b'\r\n\r\n')
+        length = len(text) + len(b'\r\n\r\n')
         msg += f'Content-Length: {length}\r\n'
         msg += '\r\n'
-        msg += html + '\r\n'
-        msg += '\r\n'
-    elif cmd == 'POST':
-        post_text = input('POST text: ')
-        msg = 'POST /random.txt HTTP/1.1\r\n'
-        msg += f'Host: {uri}\r\n'
-        msg += 'Content-Type: text/html\r\n'
-        length = len(post_text) + len(b'\r\n\r\n')
-        msg += f'Content-Length: {length}\r\n'
-        msg += '\r\n'
-        msg += post_text + '\r\n'
+        msg += text + '\r\n'
         msg += '\r\n'
 
     client.send(msg.encode()) # Encode with default utf-8
@@ -281,7 +273,7 @@ def handle_response():
 
 def main():
     # Get HTTP command
-    command = input('HTTP command: ')
+    command = input('HTTP command (HEAD, GET, POST or PUT): ')
 
     do_command(command)
 
@@ -296,6 +288,8 @@ def main():
 
         # Fix html with images
         fix_html(soup)
+
+        print('[INFO] Request succeeded, the response can be viewed in received.html')
     
     # Print headers
     elif command == 'HEAD':
