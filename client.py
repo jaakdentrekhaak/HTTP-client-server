@@ -49,7 +49,6 @@ else:
         exit()
 client.connect((server, port))
 
-
 def create_get_message(path):
     """Generate GET message with given path
 
@@ -114,7 +113,6 @@ def store_html(html):
     file.write(html.prettify())
     file.close()
 
-
 def store_img(img, path):
     """Store image response from server in the local images folder
 
@@ -140,7 +138,7 @@ def get_external_image(website, path):
     cl = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sv = socket.gethostbyname(website)
     cl.connect((sv, 80))
-    cl.send(create_get_message(path))
+    cl.send(create_get_message(path).encode())
     resp = handle_response()
     cl.close()
     return resp
@@ -160,7 +158,6 @@ def request_img(url):
         client.send(msg.encode())
         resp = handle_response()
         store_img(resp, url)
-
 
     ## External images (open other socket to external server)
     else:
@@ -280,7 +277,6 @@ def handle_response():
             chunk = get_next_chunk()
     
     return body
-
 
 def main():
     # Get HTTP command

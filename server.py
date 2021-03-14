@@ -102,7 +102,12 @@ def do_get(client, headers):
         response = b'HTTP/1.1 ' + NOT_FOUND + b'\r\n'
         
         response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
-        response += b'\r\n'
+        
+        file = open('not_found.html', 'r').read()
+        response += b'Content-Type: text/html\r\n'
+        response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
+        response += file.encode()
+        response += b'\r\n\r\n'
 
     client.send(response)
 
