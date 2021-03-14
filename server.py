@@ -40,12 +40,21 @@ def handle_connection(client, _):
         else:
             modified = True
 
-            # Check if file is modified since given date if the If-Modified-Since header is present.
-            if b'If-Modified-Since' in headers and not is_modified_since(headers):
-                # TODO: test this functionality
-                response = create_error_message(NOT_MODIFIED)
-                client.send(response)
-                modified = False
+            if b'If-Modified-Since' in headers:
+                # Check if file exists
+                # Get name of the given file
+                path = headers.split(b' ')[1].decode('utf-8')
+                total_file_name = path.split('/')[-1] # E.g. index.html
+                file_name = total_file_name.split('.')[0] # E.g. index
+                if not os.path.isfile('server_text_files/' + file_name + '.txt'):
+                    response = create_error_message(NOT_FOUND)
+                    client.send(response)
+
+                # Check if file is modified since given date
+                elif not is_modified_since(headers):
+                    response = create_error_message(NOT_MODIFIED)
+                    client.send(response)
+                    modified = False
 
             if modified:
                 if headers.startswith(b'GET'):
@@ -129,6 +138,7 @@ def head_response(headers):
     except IOError: # If requested file doesn't exist
         # If file not found, send 404 Not Found
         response = create_error_message(NOT_FOUND)
+        data = None
 
     return response, path, data
 
@@ -255,7 +265,7 @@ def is_modified_since(headers):
     index_start = headers.index(b'If-Modified-Since: ') + len(b'If-Modified-Since: ')
     temp = headers[index_start:]
     index_end = temp.index(b'GMT') + len(b'GMT')
-    date = temp[:index_end] # E.g. Sun, 14 Mar 2021 17:10:27 GMT
+    date = temp[:index_end].decode('utf-8') # E.g. Sun, 14 Mar 2021 17:10:27 GMT
 
     # Parse RFC 2822 date to seconds since epoch
     date_to_check = time.mktime(parsedate(date))
