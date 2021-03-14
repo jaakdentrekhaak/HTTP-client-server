@@ -35,6 +35,8 @@ def handle_connection(client, _):
         
         if headers.startswith(b'GET'):
             do_get(client, headers)
+        elif headers.startswith(b'HEAD'):
+            do_head(client, headers)
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
@@ -54,10 +56,17 @@ def get_headers(client):
     
     return headers
 
-def do_head(client, headers):
-    pass
+def head_response(headers):
+    """Generate the HTTP response for a HEAD request.
 
-def do_get(client, headers):
+    Args:
+        headers (bytes): Headers of the client request.
+
+    Returns:
+        response (bytes): Response to a HEAD request
+        path (string): path of the requested file
+        file (object): the requested file if it exists or not_found.html if the requested file is not found
+    """
     # Get path of requested file
     path = headers.split(b' ')[1]
 
@@ -90,11 +99,8 @@ def do_get(client, headers):
 
         if path.endswith(b'png') or path.endswith(b'jpg'):
             response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
-            response += file
         else:
             response += b'Content-Length: ' + str(len(file) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
-            response += file.encode()
-            response += b'\r\n\r\n'
 
     except IOError: # If requested file doesn't exist
         # If file not found, send 404 Not Found
@@ -106,6 +112,35 @@ def do_get(client, headers):
         file = open('not_found.html', 'r').read()
         response += b'Content-Type: text/html\r\n'
         response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
+        response += file.encode()
+        response += b'\r\n\r\n'
+
+    return response, path, file
+
+def do_head(client, headers):
+    """Send response to a HEAD request.
+
+    Args:
+        client (object): Client socket
+        headers (bytes): Headers of the client request
+    """
+    response, _, _ = head_response(headers)
+
+    client.send(response)
+
+def do_get(client, headers):
+    """Send a response to a GET request.
+
+    Args:
+        client (object): Client socket
+        headers (bytes): Headers of the client request
+    """
+    # The response to a GET request is the same as for a HEAD request, except now the requested file is included (if found)
+    response, path, file = head_response(headers)
+
+    if path.endswith(b'png') or path.endswith(b'jpg'):
+        response += file
+    else:
         response += file.encode()
         response += b'\r\n\r\n'
 
