@@ -81,6 +81,7 @@ def do_command(cmd):
     elif cmd == 'PUT':
         file = open('received.html', 'r')
         html = file.read()
+        file.close()
         msg = 'PUT /new.html HTTP/1.1\r\n' # Just the name for our file to create on the server
         msg += f'Host: {uri}\r\n'
         msg += 'Content-Type: text/html\r\n'

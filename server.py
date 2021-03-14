@@ -21,6 +21,11 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(addr)
 
 def handle_connection(client, _):
+    """Handle incoming client connection. 
+
+    Args:
+        client (object): Client socket
+    """
 
     while True:
         # Get the headers from the client request
@@ -29,15 +34,7 @@ def handle_connection(client, _):
 
         # If the headers don't contain the Host: header, respond with 400: Bad Request
         if not b'Host: ' in headers:
-            response = b'HTTP/1.1 ' + BAD_REQUEST + b'\r\n'
-            response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
-            file = open('something_went_wrong.html', 'r').read()
-            response += b'Content-Type: text/html\r\n'
-            response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
-            response += file.encode()
-            response += b'\r\n\r\n'
-            client.send(response)
-
+            client.send(create_error_message(BAD_REQUEST))
         else:
             modified = True
             if b'If-Modified-Since' in headers:
@@ -45,17 +42,17 @@ def handle_connection(client, _):
                 date = get_modified_since(headers)
                 # If file not modified: modified = False and return 304 Not Modified
                 # TODO
+                modified = False
             if modified:
                 if headers.startswith(b'GET'):
                     do_get(client, headers)
                 elif headers.startswith(b'HEAD'):
                     do_head(client, headers)
-                elif headers.startswith(b'POST'):
-                    do_post(client, headers)
-                elif headers.startswith(b'PUT'):
-                    do_put(client, headers)
+                elif headers.startswith(b'PUT') or headers.startswith(b'POST'):
+                    do_post_put(client, headers)
                 else:
-                    print('[UNKNOWN CMD] The given command is unknown')
+                    # Send server error if command not found
+                    client.send(create_error_message(SERVER_ERROR))
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
@@ -84,7 +81,7 @@ def head_response(headers):
     Returns:
         response (bytes): Response to a HEAD request
         path (string): path of the requested file
-        file (object): the requested file if it exists or something_went_wrong.html if the requested file is not found
+        data (object): the content of the requested file if it exists or something_went_wrong.html if the requested file is not found
     """
     # Get path of requested file
     path = headers.split(b' ')[1]
@@ -98,9 +95,13 @@ def head_response(headers):
     
     try: # If requested file exists
         if path.endswith(b'png') or path.endswith(b'jpg'):
-            file = open(path, 'rb').read()
+            file = open(path, 'rb')
+            data = file.read()
+            file.close()
         else:
-            file = open(path, 'r').read()
+            file = open(path, 'r')
+            data = file.read()
+            file.close()
         
         # Create response bytes
         response = b'HTTP/1.1 ' + OK + b'\r\n'
@@ -117,24 +118,15 @@ def head_response(headers):
             response += b'text/html\r\n'
 
         if path.endswith(b'png') or path.endswith(b'jpg'):
-            response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
+            response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
         else:
-            response += b'Content-Length: ' + str(len(file) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
+            response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
 
     except IOError: # If requested file doesn't exist
         # If file not found, send 404 Not Found
-        # Create response bytes
-        response = b'HTTP/1.1 ' + NOT_FOUND + b'\r\n'
-        
-        response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
-        
-        file = open('something_went_wrong.html', 'r').read()
-        response += b'Content-Type: text/html\r\n'
-        response += b'Content-Length: ' + str(len(file)).encode() + b'\r\n\r\n'
-        response += file.encode()
-        response += b'\r\n\r\n'
+        response = create_error_message(NOT_FOUND)
 
-    return response, path, file
+    return response, path, data
 
 def do_head(client, headers):
     """Send response to a HEAD request.
@@ -155,26 +147,100 @@ def do_get(client, headers):
         headers (bytes): Headers of the client request
     """
     # The response to a GET request is the same as for a HEAD request, except now the requested file is included (if found)
-    response, path, file = head_response(headers)
+    response, path, data = head_response(headers)
 
     if path.endswith(b'png') or path.endswith(b'jpg'):
-        response += file
+        response += data
     else:
-        response += file.encode()
+        response += data.encode()
         response += b'\r\n\r\n'
 
     client.send(response)
 
+def get_content_length(headers):
+    """Return Content-Length of response
 
-def do_post(client, headers):
-    pass
+    Args:
+        headers (bytes): headers of HTTP response
 
-def do_put(client, headers):
-    pass
+    Returns:
+        int: length of the body of the HTTP response
+    """
+    keyword = b'Content-Length:'
+    _, keyword, after_keyword = headers.partition(keyword)
+
+    # after_keyword now contains something like 1562\r\n..., so we only need the part before \r\n
+    ind = after_keyword.index(b'\r')
+    return int(after_keyword[:ind])
+
+def get_client_input(client, headers):
+    """Get the client input from the HTTP request
+
+    Args:
+        client (object): Client socket
+        headers (bytes): Headers of the client request
+
+    Returns:
+        bytes: Body of the client request
+    """
+    body = b''
+    content_length = get_content_length(headers)
+    # NOTE: we can't just do client.recv(content_length), because the buffersize in recv(bufsize) is a maximum
+    #   so client.recv() can return less bytes than the given buffer size
+    buff_size = 1024
+    # Loop as long as the received body is not the same length as given by Content-Length
+    while len(body) != content_length:
+        body += client.recv(buff_size)
+    return body
+
+def do_post_put(client, headers):
+    # Get name of the given file
+    path = headers.split(b' ')[1].decode('utf-8')
+    total_file_name = path.split('/')[-1] # E.g. index.html
+    file_name = total_file_name.split('.')[0] # E.g. index
+
+    # Get client input
+    data = get_client_input(client, headers)
+
+    # If POST: append to existing file or create new one if file doesn't exist
+    if headers.startswith(b'POST'):
+        file = open('server_text_files/' + file_name + '.txt', 'a')
+    # If PUT: create new file
+    elif headers.startswith(b'PUT'):
+        file = open('server_text_files/' + file_name + '.txt', 'w')
+    file.write(data)
+    file.close()
+
+    # Send response to server
+    response = b'HTTP/1.1 ' + OK + b'\r\n'
+    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+    file = open('server.html', 'r')
+    data = file.read()
+    file.close()
+    response += b'Content-Type: text/html\r\n'
+    response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
+    response += data.encode()
+    response += b'\r\n\r\n'
+    
+    client.send(response)
+
 
 def get_modified_since(headers):
     pass
     # TODO
+
+def create_error_message(error):
+    response = b'HTTP/1.1 ' + error + b'\r\n'
+    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+    file = open('something_went_wrong.html', 'r')
+    data = file.read()
+    file.close()
+    response += b'Content-Type: text/html\r\n'
+    response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
+    response += data.encode()
+    response += b'\r\n\r\n'
+
+    return response
 
 def main():
     server.listen()
