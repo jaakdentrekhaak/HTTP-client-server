@@ -24,6 +24,7 @@ def handle_connection(client, _):
 
     # Get the headers from the client request
     headers = get_headers(client)
+    print('headers:', headers)
 
     # If the headers don't contain the Host: header, respond with 400: Bad Request
     if not b'Host: ' in headers:
@@ -33,8 +34,6 @@ def handle_connection(client, _):
     
     if headers.startswith(b'GET'):
         do_get(client, headers)
-
-    print(headers)
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
@@ -60,19 +59,47 @@ def do_head(client, headers):
 def do_get(client, headers):
     # Get path of requested file
     path = headers.split(b' ')[1]
+
+    # If path is /, server.html is served
+    if path == b'/':
+        path = b'server.html'
+    
+    if path.startswith(b'/'):
+        path = path[1:] # Path without first /
     
     try:
-        file = open(path, 'r')
+        file = open(path, 'r').read()
     except:
         # If file not found, send 404 Not Found
         # TODO
-        pass
+        print('File doesn\'t exist')
+        exit()
     
     # Create response bytes
-    response = b'HTTP/1.1 ' + OK + '\r\n'
-    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() # Returns date as needed in RFC 2616
-    response += b''
+    response = b'HTTP/1.1 ' + OK + b'\r\n'
+    
+    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+    
+    response += b'Content-Type: '
+    # Currently only supports png, jpeg and html files
+    if path.endswith(b'png'):
+        response += b'image/png\r\n'
+    elif path.endswith(b'jpg'):
+        response += b'image/jpg\r\n'
+    elif path.endswith(b'html'):
+        response += b'text/html\r\n'
 
+    response += b'Content-Length: ' + str(len(file) + len(b'\r\n\r\n')).encode() + b'\r\n'
+
+    response += b'\r\n'
+
+    response += file.encode() # TODO: does this work with images?
+
+    response += b'\r\n\r\n'
+
+    print('response:', response)
+
+    client.send(response)
 
 
 def do_post(client):
