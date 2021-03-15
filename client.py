@@ -7,7 +7,7 @@ HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this
 
 # Get URI (e.g. http://www.google.com)
 print('Enter the ipv4 adress of a server, the link of a website or choose from the following options by entering the corresponding number.')
-uri = input('1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip: ') or 'www.example.com'
+uri = input('1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip, 8. browserify (extra): ') or 'www.example.com'
 
 # If number is entered -> map to website
 if uri == '1':
@@ -24,6 +24,8 @@ elif uri == '6':
     uri = 'www.tinyos.net'
 elif uri == '7':
     uri = 'www.linux-ip.net'
+elif uri == '8':
+    uri = 'browserify.org'
 
 # Parse URI (e.g. www.google.com)
 if uri.startswith('http://'):
