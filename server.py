@@ -216,13 +216,16 @@ def do_post_put(client, headers):
     """Handle POST and PUT request. Both are similar in functionality. 
     For a POST, the data is appended to the existing file or a new file is created.
     For a PUT, a new file is created.
+    NOTE: For this project I just store the incoming files in the same folder (server_text_files), 
+    so I don't look at the specified given path (but I do look at the name of the file). 
+    We can create different directories to match the given path, but then this directory would look ugly.
 
     Args:
         client (object): Client socket
         headers (bytes): Headers of the client request
     """
 
-    # Get name of the given file
+    # Get name of the given file (without the given directory)
     path = headers.split(b' ')[1].decode('utf-8')
     total_file_name = path.split('/')[-1] # E.g. index.html
     file_name = total_file_name.split('.')[0] # E.g. index
