@@ -1,0 +1,1 @@
+Why does the HTML viewer inside Pycharm yield another result than when viewing the raw file?
