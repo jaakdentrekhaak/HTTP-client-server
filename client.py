@@ -286,7 +286,7 @@ def main():
         body = handle_response()
 
         # Prettify body
-        soup = BeautifulSoup(body, 'html.parser')
+        soup = BeautifulSoup(body, 'lxml')
 
         # Fix html with images
         fix_html(soup)

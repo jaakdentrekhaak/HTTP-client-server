@@ -319,5 +319,5 @@ def main():
         print('[NEW CONNECTION]', address[0], 'connected.')
         threading.Thread(target=handle_connection, args=(client, address)).start()
 
-print('[STARTING] server is starting...')
+print('[START] server is running...')
 main()
