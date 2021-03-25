@@ -1,13 +1,19 @@
 import socket
 from bs4 import BeautifulSoup
+import sys
 
 
 HTTP_COMMANDS = ('HEAD', 'GET', 'PUT', 'POST') # Possible HTTP commands for this implementation
 
+# Check input arguments
+if len(sys.argv) != 4:
+    print('Input arguments must be: HTTP command; URI; Port')
+    exit()
 
 # Get URI (e.g. http://www.google.com)
-print('Enter the ipv4 adress of a server, the link of a website or choose from the following options by entering the corresponding number.')
-uri = input('1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip, 8. browserify (extra): ') or 'www.example.com'
+# print('Enter the ipv4 adress of a server, the link of a website or choose from the following options by entering the corresponding number.')
+# uri = input('1. example, 2. google, 3. tcpipguide, 4. jmarshall, 5. tldp, 6. tinyos, 7. linux-ip, 8. browserify (extra): ') or 'www.example.com'
+uri = sys.argv[2]
 
 # If number is entered -> map to website
 if uri == '1':
@@ -32,7 +38,8 @@ if uri.startswith('http://'):
     uri = uri[len('http://'):]
 
 # Get port
-port = input('Port (press enter for default port 80; own server uses port 5050): ') or 80
+# port = input('Port (press enter for default port 80; own server uses port 5050): ') or 80
+port = sys.argv[3]
 port = int(port)
 
 # Create TCP socket with ipv4
@@ -275,7 +282,8 @@ def handle_response():
 
 def main():
     # Get HTTP command
-    command = input('HTTP command (HEAD, GET, POST or PUT): ')
+    # command = input('HTTP command (HEAD, GET, POST or PUT): ')
+    command = sys.argv[1]
 
     do_command(command)
 
