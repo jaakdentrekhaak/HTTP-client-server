@@ -12,6 +12,9 @@ import sys
 # www.tinyos.net
 # www.linux-ip.net
 
+# IF_MODIFIED_SINCE = 'If-Modified-Since: Sun, 04 Mar 2021 17:10:27 GMT\r\n' # Date in the future -> not modified
+IF_MODIFIED_SINCE = ''
+
 def create_get_message(url, path):
     """Generate GET message with given path
 
@@ -24,7 +27,7 @@ def create_get_message(url, path):
     """
     msg = f'GET {path} HTTP/1.1\r\n'
     msg += f'Host: {url}\r\n'
-    # msg += 'If-Modified-Since: Sun, 14 Mar 2021 17:10:27 GMT\r\n'
+    msg += IF_MODIFIED_SINCE
     msg += '\r\n'
 
     return msg
@@ -46,7 +49,7 @@ def do_command(client, cmd, url, path):
     if cmd == 'HEAD':
         msg = f'HEAD {path} HTTP/1.1\r\n'
         msg += f'Host: {url}\r\n'
-        # msg += 'If-Modified-Since: Sun, 14 Mar 2021 17:10:27 GMT\r\n'
+        msg += IF_MODIFIED_SINCE
         msg += '\r\n'
     elif cmd == 'GET':
         msg = create_get_message(url, path)

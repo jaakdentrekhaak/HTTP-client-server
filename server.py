@@ -11,17 +11,6 @@ BAD_REQUEST = b'400 Bad Request'
 SERVER_ERROR = b'500 Server Error' 
 NOT_MODIFIED = b'304 Not Modified'
 
-# Get ipv4 adress (socket.gethostbyname(socket.gethostname()) returns 127..., not 192...)
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(("8.8.8.8", 80))
-server = s.getsockname()[0]
-s.close()
-
-port = 5050 # Just some port that's not used by the machine
-addr = (server, port)
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(addr)
-
 def handle_connection(client, _):
     """Handle incoming client connection. 
 
@@ -312,6 +301,17 @@ def create_error_message(error):
     return response
 
 def main():
+    # Get ipv4 adress (socket.gethostbyname(socket.gethostname()) returns 127..., not 192...)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    server = s.getsockname()[0]
+    s.close()
+
+    port = 5050 # Just some port that's not used by the machine
+    addr = (server, port)
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(addr)
+
     server.listen()
     
     while True:
@@ -319,5 +319,6 @@ def main():
         print('[NEW CONNECTION]', address[0], 'connected.')
         threading.Thread(target=handle_connection, args=(client, address)).start()
 
-print('[START] server is running...')
-main()
+if __name__ == '__main__':
+    print('[START] server is running...')
+    main()
