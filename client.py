@@ -36,6 +36,7 @@ def do_command(client, cmd, url, path):
         client (object): socket
         cmd (string): One of the possible HTTP commands
         url (string): url of server
+        path (string): path to requested file
     """
     # Possible HTTP commands for this implementation
     if cmd not in ('HEAD', 'GET', 'PUT', 'POST'):
@@ -89,6 +90,7 @@ def get_external_image(client, website, path):
     """Open new socket to website, send GET for external image and return server response with image
 
     Args:
+        client (object): socket
         website (string): name of external server
         path (string): relative path of the external image
 
@@ -179,6 +181,9 @@ def get_content_length(headers):
 def get_next_chunk(client):
     """Read the size of the chunk and receive body of chunk
 
+    Args:
+        client (object): socket
+
     Returns:
         bytes: body of the chunk
     """
@@ -204,6 +209,9 @@ def get_next_chunk(client):
 def get_headers(client):
     """Extract the headers from the HTTP server response
 
+    Args:
+        client (object): socket
+
     Returns:
         bytes: headers from response
     """
@@ -226,8 +234,6 @@ def handle_response(client, headers):
     Returns:
         bytes: HTTP response body
     """
-
-    # TODO: update documentation (new arguments)
     
     # See if we need to use content-length or transfer-encoding
     if b'Content-Length' in headers:
@@ -297,16 +303,21 @@ def main(command, uri, port):
 
     # Store HTML body in file
     elif command == 'GET' or command == 'POST' or command == 'PUT':
-        # Get HTML body
-        body = handle_response(client, headers)
+        # If you are requesting an image, this image gets saved inside the images-folder
+        if command == 'GET' and (path.endswith('.jpg') or path.endswith('.png')):
+            request_img(client, path, url)
+            print('[INFO] The requested image can be found in the images-folder')
+        else:
+            # Get HTML body
+            body = handle_response(client, headers)
 
-        # Prettify body
-        soup = BeautifulSoup(body, 'lxml')
+            # Prettify body
+            soup = BeautifulSoup(body, 'lxml')
 
-        # Fix html with images
-        fix_html(client, soup, url)
+            # Fix html with images
+            fix_html(client, soup, url)
 
-        print('[INFO] Request succeeded, the response can be viewed in received.html')
+            print('[INFO] Request succeeded, the response can be viewed in received.html')
     
     # Print headers
     elif command == 'HEAD':
