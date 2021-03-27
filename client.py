@@ -12,8 +12,8 @@ import sys
 # www.tinyos.net
 # www.linux-ip.net
 
-# IF_MODIFIED_SINCE = 'If-Modified-Since: Sun, 04 Mar 2021 17:10:27 GMT\r\n' # Date in the future -> not modified
-IF_MODIFIED_SINCE = ''
+IF_MODIFIED_SINCE = 'If-Modified-Since: Sun, 04 Mar 2021 17:10:27 GMT\r\n' # Date in the future -> not modified
+# IF_MODIFIED_SINCE = ''
 
 def create_get_message(url, path):
     """Generate GET message with given path

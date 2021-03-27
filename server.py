@@ -1,8 +1,8 @@
 import os
 import socket
 import threading
-from email.utils import formatdate, parsedate # For formatting date to HTTP date
 import time
+from datetime import datetime
 
 # Status codes
 OK = b'200 OK'
@@ -76,7 +76,7 @@ def create_head_message(path):
     # Create response bytes
     response = b'HTTP/1.1 ' + OK + b'\r\n'
     
-    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+    response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
     
     response += b'Content-Type: '
 
@@ -125,7 +125,7 @@ def head_response(headers):
     # Check if file is modified since given date
     elif b'If-Modified-Since' in headers and not is_modified_since(headers):
         response = b'HTTP/1.1 ' + NOT_MODIFIED + b'\r\n'
-        response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+        response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
         response += b'\r\n'
 
     else:
@@ -233,7 +233,7 @@ def do_post_put(client, headers):
 
     # Send response to server
     response = b'HTTP/1.1 ' + OK + b'\r\n'
-    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2822
+    response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
     file = open('server.html', 'r')
     data = file.read()
     file.close()
@@ -270,8 +270,8 @@ def is_modified_since(headers):
     index_end = temp.index(b'GMT') + len(b'GMT')
     date = temp[:index_end].decode('utf-8') # E.g. Sun, 14 Mar 2021 17:10:27 GMT
 
-    # Parse RFC 2822 date to seconds since epoch
-    date_to_check = time.mktime(parsedate(date))
+    # Parse RFC 2616 date to seconds since epoch
+    date_to_check = time.mktime(time.strptime(date, '%a, %d %b %Y %H:%M:%S %Z'))
 
     # Get date/time of last modification (returns seconds since epoch)
     moddate = os.stat(path)[8]
@@ -289,7 +289,7 @@ def create_error_message(error):
         bytes: HTTP response
     """
     response = b'HTTP/1.1 ' + error + b'\r\n'
-    response += b'Date: ' + formatdate(timeval=None, localtime=False, usegmt=True).encode() + b'\r\n' # Returns date as needed in RFC 2616
+    response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
     file = open('something_went_wrong.html', 'r')
     data = file.read()
     file.close()
