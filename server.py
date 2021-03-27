@@ -264,10 +264,10 @@ def is_modified_since(headers):
     if path.startswith('/'):
         path = path[1:] # Path without first /
 
-    # Date will be given as: If-Modified-Since: Sun, 14 Mar 2021 17:10:27 GMT
+    # Date will be given as: If-Modified-Since: Sun, 14 Mar 2021 17:10:27 GMT\r\n
     index_start = headers.index(b'If-Modified-Since: ') + len(b'If-Modified-Since: ')
     temp = headers[index_start:]
-    index_end = temp.index(b'GMT') + len(b'GMT')
+    index_end = temp.index(b'\r\n')
     date = temp[:index_end].decode('utf-8') # E.g. Sun, 14 Mar 2021 17:10:27 GMT
 
     # Parse RFC 2616 date to seconds since epoch
