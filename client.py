@@ -301,12 +301,14 @@ def main(command, uri, port):
     # Get header from response
     headers = get_headers(client)
 
-    # If not 200 OK in headers -> just show headers in terminal
+    # If not 200 OK in headers -> show headers in terminal
     if b'200 OK' not in headers:
         print(headers.decode('utf-8'))
 
+    # If 304 Not Modified in response: don't receive the body
+
     # Store HTML body in file
-    elif command == 'GET' or command == 'POST' or command == 'PUT':
+    if b'304 Not Modified' not in headers and (command == 'GET' or command == 'POST' or command == 'PUT'):
         # If you are requesting an image, this image gets saved inside the images-folder
         if command == 'GET' and (path.endswith('.jpg') or path.endswith('.png')):
             request_img(client, path, url)
@@ -324,7 +326,7 @@ def main(command, uri, port):
             print('[SUCCESS] Request succeeded, the response can be viewed in received.html')
     
     # Print headers
-    elif command == 'HEAD':
+    elif b'304 Not Modified' not in headers and command == 'HEAD':
         print(headers.decode('utf-8')) # Decoding for readability in terminal
 
     # Close connection
