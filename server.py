@@ -35,7 +35,7 @@ def handle_connection(client, _):
                 do_post_put(client, headers)
             else:
                 # Send server error if command not found
-                client.send(create_error_message(SERVER_ERROR))
+                client.send(create_error_message(BAD_REQUEST))
             if b'Connection: close' in headers:
                 client.close()
                 break
@@ -135,7 +135,7 @@ def head_response(headers):
         response = create_error_message(NOT_FOUND)
 
     # Check if file is modified since given date
-    elif b'If-Modified-Since' in headers and not is_modified_since(headers):
+    elif b'If-Modified-Since' in headers and not is_modified_since(headers): # If-Modified-Since header only possible in GET and HEAD
         response = b'HTTP/1.1 ' + NOT_MODIFIED + b'\r\n'
         response += b'Date: ' + time.strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
         response += b'\r\n'
