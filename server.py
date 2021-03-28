@@ -312,6 +312,8 @@ def create_error_message(error):
     return response
 
 def main():
+    """Run the code
+    """
     # Get ipv4 adress (socket.gethostbyname(socket.gethostname()) returns 127..., not 192...)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
