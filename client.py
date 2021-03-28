@@ -12,8 +12,8 @@ import sys
 # www.tinyos.net
 # www.linux-ip.net
 
-IF_MODIFIED_SINCE = 'If-Modified-Since: Sun, 04 Apr 2021 17:10:27 GMT\r\n' # Date in the future -> not modified
-# IF_MODIFIED_SINCE = ''
+# IF_MODIFIED_SINCE = 'If-Modified-Since: Sun, 04 Apr 2021 17:10:27 GMT\r\n' # Date in the future -> not modified
+IF_MODIFIED_SINCE = ''
 
 def create_get_message(url, path):
     """Generate GET message with given path
@@ -328,8 +328,14 @@ def main(command, uri, port):
         print(headers.decode('utf-8')) # Decoding for readability in terminal
 
     # Close connection
-    # TODO (optional): send 'Connection: close' header to server
-    client.close()
+    client.send(f'HEAD / HTTP/1.1\r\nHost: {url}\r\nConnection: close\r\n\r\n'.encode())
+    headers = get_headers(client)
+    if b'Connection: close' in headers:
+        print('[CLOSED] Client successfully closed.')
+        client.close()
+    else:
+        print('[FORCE CLOSE] Client closed because no Connection: close header was received from the server.')
+        client.close()
 
 if __name__ == '__main__':
     # Check input arguments

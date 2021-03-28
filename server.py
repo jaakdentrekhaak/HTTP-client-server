@@ -2,7 +2,6 @@ import os
 import socket
 import threading
 import time
-from datetime import datetime
 
 # Status codes
 OK = b'200 OK'
@@ -37,6 +36,8 @@ def handle_connection(client, _):
             else:
                 # Send server error if command not found
                 client.send(create_error_message(SERVER_ERROR))
+            if b'Connection: close' in headers:
+                client.close()
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
@@ -56,11 +57,12 @@ def get_headers(client):
     
     return headers
 
-def create_head_message(path):
+def create_head_message(path, close):
     """Create a HTTP message for HEAD request
 
     Args:
         path (bytes): path of the requested file
+        close (boolean): close connection or not
 
     Returns:
         response (bytes): HTTP message
@@ -76,7 +78,7 @@ def create_head_message(path):
     # Create response bytes
     response = b'HTTP/1.1 ' + OK + b'\r\n'
     
-    response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
+    response += b'Date: ' + time.strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
     
     response += b'Content-Type: '
 
@@ -89,9 +91,14 @@ def create_head_message(path):
         response += b'text/html\r\n'
 
     if path.endswith(b'png') or path.endswith(b'jpg'):
-        response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
+        response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n'
     else:
-        response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
+        response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n'
+    
+    if close:
+        response += b'Connection: close\r\n'
+    
+    response += b'\r\n'
 
     return response, data
 
@@ -125,11 +132,11 @@ def head_response(headers):
     # Check if file is modified since given date
     elif b'If-Modified-Since' in headers and not is_modified_since(headers):
         response = b'HTTP/1.1 ' + NOT_MODIFIED + b'\r\n'
-        response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
+        response += b'Date: ' + time.strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
         response += b'\r\n'
 
     else:
-        response, data = create_head_message(path)
+        response, data = create_head_message(path, b'Connection: close' in headers)
 
 
     return response, path, data
@@ -233,12 +240,15 @@ def do_post_put(client, headers):
 
     # Send response to server
     response = b'HTTP/1.1 ' + OK + b'\r\n'
-    response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
+    response += b'Date: ' + time.strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
     file = open('server.html', 'r')
     data = file.read()
     file.close()
     response += b'Content-Type: text/html\r\n'
-    response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
+    response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n'
+    if b'Connection: close' in headers:
+        response += b'Connection: close\r\n'
+    response += b'\r\n'
     response += data.encode()
     response += b'\r\n\r\n'
     
@@ -289,7 +299,7 @@ def create_error_message(error):
         bytes: HTTP response
     """
     response = b'HTTP/1.1 ' + error + b'\r\n'
-    response += b'Date: ' + datetime.now().strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
+    response += b'Date: ' + time.strftime("%a, %d %b %Y %H:%M:%S GMT").encode() + b'\r\n' # Returns date as needed in RFC 2616
     file = open('something_went_wrong.html', 'r')
     data = file.read()
     file.close()
