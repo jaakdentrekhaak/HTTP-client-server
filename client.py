@@ -43,7 +43,7 @@ def do_command(client, cmd, url, path):
     """
     # Possible HTTP commands for this implementation
     if cmd not in ('HEAD', 'GET', 'PUT', 'POST'):
-        print('[INVALID COMMAND] Command not recognized')
+        print('[ERROR] Command not recognized')
         exit()
 
     if cmd == 'HEAD':
@@ -64,7 +64,6 @@ def do_command(client, cmd, url, path):
         msg += text + '\r\n'
         msg += '\r\n'
 
-    print(msg)
     client.send(msg.encode()) # Encode with default utf-8
 
 def store_html(html):
@@ -123,7 +122,7 @@ def request_img(client, uri, url):
     if not uri.startswith('http'):
         if not uri.startswith('/'):
             uri = '/' + uri 
-        print('[REQUEST IMG]', url, uri)
+        print('[IMG REQUEST]', uri)
         msg = create_get_message(url, uri)
         client.send(msg.encode())
         headers = get_headers(client)
@@ -132,6 +131,7 @@ def request_img(client, uri, url):
 
     ## External images (open other socket to external server)
     else:
+        print('[EXT IMG REQUEST]', url, uri)
         # E.g. https://ssl.gstatic.com/gb/images/b_8d5afc09.png
         split_uri = uri.split('/')
         website = split_uri[2]
@@ -267,13 +267,13 @@ def main(command, uri, port):
         port (string): port to connect to
     """
 
+    # Parse URI (e.g. www.google.com)
+    if uri.startswith('http://'):
+        uri = uri[len('http://'):]
+
     # Get url of given uri and the path of the file
     url = uri.split('/')[0]
     path = '/'.join(uri.split('/')[1:]) or '/' # Default is /
-
-    # Parse URI (e.g. www.google.com)
-    if url.startswith('http://'):
-        url = url[len('http://'):]
 
     port = int(port)
 
@@ -282,7 +282,7 @@ def main(command, uri, port):
 
     # Connect to server
     if url == 'localhost':
-        print('Connect to your own server with your ipv4 address.')
+        print('[ERROR] Connect to your own server with your ipv4 address.')
         exit()
     elif url.startswith('192'): # possible that user wants to connect to given ipv4 adress
             server = url
@@ -291,7 +291,7 @@ def main(command, uri, port):
             server = socket.gethostbyname(url)
         except socket.gaierror:  
             # this means could not resolve the host  
-            print ('There was an error resolving the host') 
+            print ('[ERROR] There was an error resolving the host') 
             exit()
     client.connect((server, port))
 
@@ -310,7 +310,7 @@ def main(command, uri, port):
         # If you are requesting an image, this image gets saved inside the images-folder
         if command == 'GET' and (path.endswith('.jpg') or path.endswith('.png')):
             request_img(client, path, url)
-            print('[INFO] The requested image can be found in the images-folder')
+            print('[SUCCESS] The requested image can be found in the images-folder')
         else:
             # Get HTML body
             body = handle_response(client, headers)
@@ -321,7 +321,7 @@ def main(command, uri, port):
             # Fix html with images
             fix_html(client, soup, url)
 
-            print('[INFO] Request succeeded, the response can be viewed in received.html')
+            print('[SUCCESS] Request succeeded, the response can be viewed in received.html')
     
     # Print headers
     elif command == 'HEAD':
@@ -331,16 +331,16 @@ def main(command, uri, port):
     client.send(f'HEAD / HTTP/1.1\r\nHost: {url}\r\nConnection: close\r\n\r\n'.encode())
     headers = get_headers(client)
     if b'Connection: close' in headers:
-        print('[CLOSED] Client successfully closed.')
+        print('[CLOSE] Client successfully closed.')
         client.close()
     else:
-        print('[FORCE CLOSE] Client closed because no Connection: close header was received from the server.')
+        print('[FORCE CLOSE] Client closed because no \'Connection: close\'-header was received from the server.')
         client.close()
 
 if __name__ == '__main__':
     # Check input arguments
     if len(sys.argv) != 4:
-        print('Input arguments must be: client.py; HTTP command; URI; Port')
+        print('[ERROR] Input arguments must be: client.py; HTTP command; URI; Port')
         exit()
     command, uri, port = sys.argv[1:]
     main(command, uri, port)

@@ -20,7 +20,7 @@ def handle_connection(client, _):
     while True:
         # Get the headers from the client request
         headers = get_headers(client)
-        print('[REQUEST] headers:', headers)
+        print('[REQUEST]', headers)
 
         # If the headers don't contain the Host: header, respond with 400: Bad Request
         if not b'Host: ' in headers:
