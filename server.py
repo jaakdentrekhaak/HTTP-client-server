@@ -126,8 +126,12 @@ def head_response(headers):
     if path.startswith(b'/'):
         path = path[1:] # Path without first /
     
+    # Only png, jpg and html are supported
+    if not (path.endswith(b'png') or path.endswith(b'jpg') or path.endswith(b'html')):
+        response = create_error_message(SERVER_ERROR)
+
     # Check if file exists
-    if not os.path.isfile(path):
+    elif not os.path.isfile(path):
         response = create_error_message(NOT_FOUND)
 
     # Check if file is modified since given date
