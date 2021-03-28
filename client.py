@@ -89,11 +89,10 @@ def store_img(img, path):
     file.write(img)
     file.close()
 
-def get_external_image(client, website, path):
+def get_external_image(website, path):
     """Open new socket to website, send GET for external image and return server response with image
 
     Args:
-        client (object): socket
         website (string): name of external server
         path (string): relative path of the external image
 
@@ -104,8 +103,8 @@ def get_external_image(client, website, path):
     sv = socket.gethostbyname(website)
     cl.connect((sv, 80))
     cl.send(create_get_message(website, path).encode())
-    headers = get_headers(client)
-    resp = handle_response(client, headers)
+    headers = get_headers(cl)
+    resp = handle_response(cl, headers)
     cl.close()
     return resp
 
@@ -132,7 +131,7 @@ def request_img(client, uri, url):
     ## External images (open other socket to external server)
     else:
         print('[EXT IMG REQUEST]', url, uri)
-        # E.g. https://ssl.gstatic.com/gb/images/b_8d5afc09.png
+        # E.g. http://www.tinyos.net/tos-jwall.jpg
         split_uri = uri.split('/')
         website = split_uri[2]
         img_path = '/' + '/'.join(split_uri[3:])
