@@ -1,3 +1,0 @@
-Changes made in Firefox to view server in browser:
-- in search bar: `about:config`
-    - browser.fixup.fallback-to-https: true -> false
