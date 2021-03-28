@@ -305,7 +305,7 @@ def create_error_message(error):
     data = file.read()
     file.close()
     response += b'Content-Type: text/html\r\n'
-    response += b'Content-Length: ' + str(len(data)).encode() + b'\r\n\r\n'
+    response += b'Content-Length: ' + str(len(data) + len(b'\r\n\r\n')).encode() + b'\r\n\r\n'
     response += data.encode()
     response += b'\r\n\r\n'
 
