@@ -135,7 +135,7 @@ def request_img(client, uri, url):
         split_uri = uri.split('/')
         website = split_uri[2]
         img_path = '/' + '/'.join(split_uri[3:])
-        store_img(get_external_image(client, website, img_path), img_path)
+        store_img(get_external_image(website, img_path), img_path)
 
 def fix_html(client, html, url):
     """Find missing images in the given html, request them from the server and

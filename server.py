@@ -7,7 +7,7 @@ import time
 OK = b'200 OK'
 NOT_FOUND = b'404 Not Found'
 BAD_REQUEST = b'400 Bad Request'
-SERVER_ERROR = b'500 Server Error' 
+SERVER_ERROR = b'500 Internal Server Error' 
 NOT_MODIFIED = b'304 Not Modified'
 
 def handle_connection(client, _):
