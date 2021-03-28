@@ -38,6 +38,7 @@ def handle_connection(client, _):
                 client.send(create_error_message(SERVER_ERROR))
             if b'Connection: close' in headers:
                 client.close()
+                break
 
 def get_headers(client):
     """Extract the headers from the HTTP client request
